@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: glidepath-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - ./backend/firebase-service-account.json:/app/firebase-service-account.json
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_RUN_HOST=0.0.0.0
+      - FLASK_ENV=production
+    networks:
+      - retirement-net
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: glidepath-frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+    depends_on:
+      - backend
+    networks:
+      - retirement-net
+    restart: unless-stopped
+
+networks:
+  retirement-net:
+    driver: bridge 

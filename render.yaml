@@ -1,0 +1,29 @@
+services:
+  # Backend API Service
+  - type: web
+    name: retirement-simulator-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+    healthCheckPath: /health
+
+  # Frontend Static Site
+  - type: web
+    name: retirement-simulator-frontend
+    env: static
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://retirement-simulator-backend.onrender.com
+      - key: REACT_APP_STRIPE_PUBLISHABLE_KEY
+        sync: false 
