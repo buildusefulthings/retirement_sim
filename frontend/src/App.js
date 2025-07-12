@@ -74,11 +74,13 @@ function App() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Auth state
-  const { user, login, signup, logout } = useAuth();
+  const { user, login, signup, logout, resetPassword } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
   const [authError, setAuthError] = useState('');
 
   // Payment state
@@ -744,12 +746,29 @@ function App() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    setAuthError('');
+    
     try {
       await signup(email, password);
       setShowSignup(false);
-      setAuthError('');
-    } catch (err) {
-      setAuthError(err.message);
+      setEmail('');
+      setPassword('');
+    } catch (error) {
+      setAuthError('Signup failed: ' + error.message);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    
+    try {
+      await resetPassword(resetEmail);
+      setShowForgotPassword(false);
+      setResetEmail('');
+      alert('Password reset email sent! Check your inbox.');
+    } catch (error) {
+      setAuthError('Password reset failed: ' + error.message);
     }
   };
 
@@ -849,17 +868,27 @@ function App() {
             <span className="guest-info">
               {runCount}/{FREE_RUN_LIMIT} free runs remaining
             </span>
-            <button onClick={() => setShowLogin(true)}>Login</button>
-            <button onClick={() => setShowSignup(true)}>Sign Up</button>
+            <button onClick={() => { setShowLogin(true); setShowSignup(false); setShowForgotPassword(false); }}>Login</button>
+            <button onClick={() => { setShowSignup(true); setShowLogin(false); setShowForgotPassword(false); }}>Sign Up</button>
           </>
         )}
       </div>
-      {showLogin && (
+      {showLogin && !showForgotPassword && (
         <form onSubmit={handleLogin} className="auth-form">
           <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
           <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
           <button type="submit">Login</button>
           <button type="button" onClick={() => setShowLogin(false)}>Cancel</button>
+          <button type="button" onClick={() => { setShowForgotPassword(true); setResetEmail(email); }}>Forgot Password?</button>
+          {authError && <div className="error-message">{authError}</div>}
+        </form>
+      )}
+      {showForgotPassword && (
+        <form onSubmit={handleForgotPassword} className="auth-form">
+          <h3>Reset Password</h3>
+          <input type="email" placeholder="Email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} required />
+          <button type="submit">Send Reset Email</button>
+          <button type="button" onClick={() => { setShowForgotPassword(false); setShowLogin(true); }}>Back to Login</button>
           {authError && <div className="error-message">{authError}</div>}
         </form>
       )}
