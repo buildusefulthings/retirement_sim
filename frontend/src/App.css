@@ -1858,3 +1858,51 @@ body {
   color: #1976d2;
   font-weight: 500;
 }
+
+/* Unified Save Section */
+.unified-save-section {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1.5rem 1rem;
+  margin-top: 2rem;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.04);
+  border: 2px solid #e3eaf2;
+}
+
+.unified-save-section .save-action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.unified-save-section .save-details {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.unified-save-section .save-details small {
+  background: #e3eaf2;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  display: inline-block;
+  color: #1976d2;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .unified-save-section .save-action-bar {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .unified-save-section .save-info {
+    align-items: center;
+  }
+}

@@ -338,6 +338,100 @@ function App() {
     }
   };
 
+  const handleSaveBothSimulations = async () => {
+    if (!selectedProfile) {
+      alert("Please select a profile first.");
+      return;
+    }
+
+    const basicSim = latestSim.basic;
+    const monteCarloSim = latestSim.monteCarlo;
+
+    if (!basicSim && !monteCarloSim) {
+      alert("Please run at least one simulation (Basic or Monte Carlo) before saving.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const selectedProfileName = profiles.find(p => p.id === selectedProfile)?.name;
+      let savedCount = 0;
+      let errorMessages = [];
+
+      // Save basic simulation if available
+      if (basicSim) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/clients/${selectedProfile}/simulations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: user.uid,
+              simulation_data: basicSim,
+              type: 'basic',
+            }),
+          });
+
+          if (response.ok) {
+            savedCount++;
+          } else {
+            const errorData = await response.json();
+            errorMessages.push(`Basic: ${errorData.error || 'Failed to save'}`);
+          }
+        } catch (err) {
+          errorMessages.push('Basic: Network error');
+        }
+      }
+
+      // Save Monte Carlo simulation if available
+      if (monteCarloSim) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/clients/${selectedProfile}/simulations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: user.uid,
+              simulation_data: monteCarloSim,
+              type: 'monte_carlo',
+            }),
+          });
+
+          if (response.ok) {
+            savedCount++;
+          } else {
+            const errorData = await response.json();
+            errorMessages.push(`Monte Carlo: ${errorData.error || 'Failed to save'}`);
+          }
+        } catch (err) {
+          errorMessages.push('Monte Carlo: Network error');
+        }
+      }
+
+      // Show results
+      if (savedCount > 0) {
+        const simTypes = [];
+        if (basicSim) simTypes.push('Basic');
+        if (monteCarloSim) simTypes.push('Monte Carlo');
+        
+        alert(`✅ ${savedCount} simulation(s) saved to profile: ${selectedProfileName}\n\nSaved: ${simTypes.join(' and ')}`);
+        fetchProfiles(user.uid); // Refresh profile data
+        
+        // Clear saved simulations
+        setLatestSim(prev => ({ 
+          basic: basicSim ? null : prev.basic, 
+          monteCarlo: monteCarloSim ? null : prev.monteCarlo 
+        }));
+      }
+
+      if (errorMessages.length > 0) {
+        setError(`Some simulations failed to save: ${errorMessages.join(', ')}`);
+      }
+    } catch (err) {
+      setError('An error occurred while saving simulations.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle Monte Carlo simulation
   const handleMonteCarlo = async () => {
     if (!canRunSimulation()) return;
@@ -1120,17 +1214,6 @@ function App() {
             {loading && <div className="loading-message">Loading...</div>}
             {!loading && results && (
               <>
-                {latestSim.basic && selectedProfile && (
-                  <div className="save-action-bar">
-                    <span>Save this simulation to your selected profile:</span>
-                    <div className="save-info">
-                      <button onClick={() => handleSaveSimulation('basic')} className="save-btn">
-                        Save to Profile
-                      </button>
-                      <small className="override-notice">⚠️ This will replace any existing Basic simulation</small>
-                    </div>
-                  </div>
-                )}
                 {renderResultsTable()}
               </>
             )}
@@ -1202,22 +1285,35 @@ function App() {
             {mcLoading && <div className="loading-message">Loading Monte Carlo...</div>}
             {!mcLoading && mcResults && (
               <>
-                {latestSim.monteCarlo && selectedProfile && (
-                  <div className="save-action-bar">
-                    <span>Save this scenario to your selected profile:</span>
-                    <div className="save-info">
-                      <button onClick={() => handleSaveSimulation('monteCarlo')} className="save-btn">
-                        Save to Profile
-                      </button>
-                      <small className="override-notice">⚠️ This will replace any existing Monte Carlo simulation</small>
-                    </div>
-                  </div>
-                )}
                 {renderMonteCarloChart()}
                 {renderMonteCarloInsights()}
               </>
             )}
           </section>
+          
+          {/* Unified Save Button */}
+          {user && selectedProfile && (latestSim.basic || latestSim.monteCarlo) && (
+            <section className="unified-save-section">
+              <div className="save-action-bar">
+                <span>Save simulations to your selected profile:</span>
+                <div className="save-info">
+                  <button onClick={handleSaveBothSimulations} className="save-btn" disabled={loading}>
+                    {loading ? 'Saving...' : 'Save to Profile'}
+                  </button>
+                  <small className="override-notice">
+                    ⚠️ This will replace any existing simulations of the same type
+                  </small>
+                </div>
+              </div>
+              <div className="save-details">
+                <small>
+                  {latestSim.basic && latestSim.monteCarlo ? 'Will save: Basic + Monte Carlo simulations' :
+                   latestSim.basic ? 'Will save: Basic simulation' :
+                   'Will save: Monte Carlo simulation'}
+                </small>
+              </div>
+            </section>
+          )}
         </main>
       </div>
     </div>
