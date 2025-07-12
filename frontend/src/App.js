@@ -735,12 +735,23 @@ function App() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setAuthError('');
+    
+    if (!email || !password) {
+      setAuthError('Please enter both email and password.');
+      return;
+    }
+    
     try {
+      console.log('Attempting to login with email:', email);
       await login(email, password);
+      console.log('Login successful');
       setShowLogin(false);
-      setAuthError('');
-    } catch (err) {
-      setAuthError(err.message);
+      setEmail('');
+      setPassword('');
+    } catch (error) {
+      console.error('Login error:', error);
+      setAuthError('Login failed: ' + error.message);
     }
   };
 
@@ -762,12 +773,20 @@ function App() {
     e.preventDefault();
     setAuthError('');
     
+    if (!resetEmail) {
+      setAuthError('Please enter your email address.');
+      return;
+    }
+    
     try {
+      console.log('Attempting to send password reset email to:', resetEmail);
       await resetPassword(resetEmail);
+      console.log('Password reset email sent successfully');
       setShowForgotPassword(false);
       setResetEmail('');
-      alert('Password reset email sent! Check your inbox.');
+      alert('Password reset email sent! Check your inbox and spam folder.');
     } catch (error) {
+      console.error('Password reset error:', error);
       setAuthError('Password reset failed: ' + error.message);
     }
   };
