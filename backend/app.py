@@ -197,15 +197,10 @@ def root():
 def api_simulate():
     data = request.json
     user_id = data.get('user_id')  # Frontend will send this
-    client_id = data.get('client_id')  # Optional: if provided, save to client
     
     # Check if user can run simulation
     if user_id and not can_user_run_simulation(user_id):
         return jsonify({'error': 'No credits remaining. Please purchase more credits or subscribe.'}), 402
-    
-    # If client_id provided, check if client can have more simulations
-    if user_id and client_id and not can_client_have_more_simulations(user_id, client_id):
-        return jsonify({'error': 'Client has reached maximum number of simulations (5)'}), 400
     
     result = simulation(
         balance=data['balance'],
@@ -220,15 +215,6 @@ def api_simulate():
         drawdown_start=data.get('drawdown_start', 0)
     )
     
-    # Save simulation to client if client_id provided
-    if user_id and client_id:
-        simulation_data = {
-            'parameters': data,
-            'results': result,
-            'type': 'basic'
-        }
-        save_simulation(user_id, client_id, simulation_data, 'basic')
-    
     # Deduct credit if user is logged in
     if user_id:
         deduct_user_credit(user_id)
@@ -239,15 +225,10 @@ def api_simulate():
 def api_monte_carlo():
     data = request.json
     user_id = data.get('user_id')
-    client_id = data.get('client_id')  # Optional: if provided, save to client
     
     # Check if user can run simulation
     if user_id and not can_user_run_simulation(user_id):
         return jsonify({'error': 'No credits remaining. Please purchase more credits or subscribe.'}), 402
-    
-    # If client_id provided, check if client can have more simulations
-    if user_id and client_id and not can_client_have_more_simulations(user_id, client_id):
-        return jsonify({'error': 'Client has reached maximum number of simulations (5)'}), 400
     
     result = monte_carlo_retirement(
         balance=data['balance'],
@@ -264,15 +245,6 @@ def api_monte_carlo():
         drawdown_start=data.get('drawdown_start', 0),
         simulations=data.get('simulations', 1000)
     )
-    
-    # Save simulation to client if client_id provided
-    if user_id and client_id:
-        simulation_data = {
-            'parameters': data,
-            'results': {'success_rates': result.tolist()},
-            'type': 'monte_carlo'
-        }
-        save_simulation(user_id, client_id, simulation_data, 'monte_carlo')
     
     # Deduct credit if user is logged in
     if user_id:
@@ -541,13 +513,28 @@ def generate_report(client_id):
     if not all_simulations:
         return jsonify({'error': 'No simulations found for this client to generate a report.'}), 404
 
+    # Filter to only the most recent simulation of each type
+    basic_simulations = [s for s in all_simulations if s['type'] == 'basic']
+    monte_carlo_simulations = [s for s in all_simulations if s['type'] == 'monte_carlo']
+    
+    # Get the most recent of each type
+    most_recent_simulations = []
+    
+    if basic_simulations:
+        most_recent_basic = max(basic_simulations, key=lambda x: x['created_at'])
+        most_recent_simulations.append(most_recent_basic)
+    
+    if monte_carlo_simulations:
+        most_recent_mc = max(monte_carlo_simulations, key=lambda x: x['created_at'])
+        most_recent_simulations.append(most_recent_mc)
+
     try:
-        print(f"Generating report for client {client_id} with {len(all_simulations)} simulations")
+        print(f"Generating report for client {client_id} with {len(most_recent_simulations)} most recent simulations")
         
-        # Generate PDF report
+        # Generate PDF report with only the most recent simulations
         pdf_buffer = generate_retirement_report(
             client_data=client,
-            simulations=all_simulations
+            simulations=most_recent_simulations
         )
         
         # Return the PDF file

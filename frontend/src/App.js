@@ -265,9 +265,6 @@ function App() {
       const requestData = { ...params };
       if (user) {
         requestData.user_id = user.uid;
-        if (selectedProfile) {
-          requestData.client_id = selectedProfile;
-        }
       }
       
       console.log('Sending simulation request:', requestData);
@@ -297,18 +294,6 @@ function App() {
       setResults(data);
       setLatestSim(prev => ({ ...prev, basic: { parameters: params, results: data } }));
       incrementRunCount();
-      
-      // Show success message if saved to profile
-      if (user && selectedProfile) {
-        const selectedProfileName = profiles.find(p => p.id === selectedProfile)?.name;
-        setError(''); // Clear any previous errors
-        alert(`✅ Simulation saved to profile: ${selectedProfileName}`);
-      }
-      
-      // Refresh profiles to update simulation counts
-      if (user && selectedProfile) {
-        fetchProfiles(user.uid);
-      }
     } catch (err) {
       console.error('Simulation error:', err);
       setError(`Failed to fetch simulation results: ${err.message}`);
@@ -337,7 +322,8 @@ function App() {
       });
 
       if (response.ok) {
-        alert('Simulation saved successfully!');
+        const selectedProfileName = profiles.find(p => p.id === selectedProfile)?.name;
+        alert(`✅ ${simulationType === 'monteCarlo' ? 'Monte Carlo' : 'Basic'} simulation saved to profile: ${selectedProfileName}`);
         fetchProfiles(user.uid); // Refresh profile data
         // Clear the saved sim so it can't be saved again
         setLatestSim(prev => ({ ...prev, [simulationType]: null }));
@@ -401,18 +387,6 @@ function App() {
       setMcHasRun(true);
       setLatestSim(prev => ({ ...prev, monteCarlo: { parameters: params, results: data } }));
       incrementRunCount();
-      
-      // Show success message if saved to profile
-      if (user && selectedProfile) {
-        const selectedProfileName = profiles.find(p => p.id === selectedProfile)?.name;
-        setMcError(''); // Clear any previous errors
-        alert(`✅ Monte Carlo simulation saved to profile: ${selectedProfileName}`);
-      }
-      
-      // Refresh profiles to update simulation counts
-      if (user && selectedProfile) {
-        fetchProfiles(user.uid);
-      }
     } catch (err) {
       console.error('Monte Carlo error:', err);
       setMcError(`Failed to fetch Monte Carlo results: ${err.message}`);
