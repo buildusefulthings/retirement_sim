@@ -542,6 +542,8 @@ def generate_report(client_id):
         return jsonify({'error': 'No simulations found for this client to generate a report.'}), 404
 
     try:
+        print(f"Generating report for client {client_id} with {len(all_simulations)} simulations")
+        
         # Generate PDF report
         pdf_buffer = generate_retirement_report(
             client_data=client,
@@ -550,16 +552,19 @@ def generate_report(client_id):
         
         # Return the PDF file
         pdf_buffer.seek(0)
+        filename = f'retirement_report_{client["name"].replace(" ", "_")}.pdf'
         return send_file(
             pdf_buffer,
             mimetype='application/pdf',
             as_attachment=True,
-            download_name=f'retirement_report_{client["name"]}.pdf'
+            download_name=filename
         )
         
     except Exception as e:
         print(f"Error generating report: {e}")
-        return jsonify({'error': 'Failed to generate consolidated report'}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to generate consolidated report: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

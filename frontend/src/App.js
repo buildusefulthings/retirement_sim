@@ -1074,6 +1074,9 @@ function App() {
                       ✅ Simulation will be saved to selected profile. 
                       Each profile can have up to 5 simulations.
                     </small>
+                    <small className="override-notice">
+                      ⚠️ Saving will replace any existing simulation of the same type.
+                    </small>
                   </div>
                 ) : profiles.length > 0 ? (
                   <div className="profile-info-display">
@@ -1146,9 +1149,12 @@ function App() {
                 {latestSim.basic && selectedProfile && (
                   <div className="save-action-bar">
                     <span>Save this simulation to your selected profile:</span>
-                    <button onClick={() => handleSaveSimulation('basic')} className="save-btn">
-                      Save to Profile
-                    </button>
+                    <div className="save-info">
+                      <button onClick={() => handleSaveSimulation('basic')} className="save-btn">
+                        Save to Profile
+                      </button>
+                      <small className="override-notice">⚠️ This will replace any existing Basic simulation</small>
+                    </div>
                   </div>
                 )}
                 {renderResultsTable()}
@@ -1225,9 +1231,12 @@ function App() {
                 {latestSim.monteCarlo && selectedProfile && (
                   <div className="save-action-bar">
                     <span>Save this scenario to your selected profile:</span>
-                    <button onClick={() => handleSaveSimulation('monteCarlo')} className="save-btn">
-                      Save to Profile
-                    </button>
+                    <div className="save-info">
+                      <button onClick={() => handleSaveSimulation('monteCarlo')} className="save-btn">
+                        Save to Profile
+                      </button>
+                      <small className="override-notice">⚠️ This will replace any existing Monte Carlo simulation</small>
+                    </div>
                   </div>
                 )}
                 {renderMonteCarloChart()}

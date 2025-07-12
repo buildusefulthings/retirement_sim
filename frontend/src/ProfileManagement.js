@@ -201,6 +201,7 @@ function ProfileManagement(props) {
     setError('');
 
     try {
+      console.log(`Downloading report for profile ${profileId}`);
       const response = await fetch(`${API_BASE_URL}/api/clients/${profileId}/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -217,13 +218,17 @@ function ProfileManagement(props) {
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
+        console.log('Report downloaded successfully');
         // Refresh profile list after report generation
         if (props.onProfilesChanged) props.onProfilesChanged();
       } else {
-        setError('Failed to generate report.');
+        const errorData = await response.json();
+        console.error('Report generation failed:', errorData);
+        setError(`Failed to generate report: ${errorData.error || 'Unknown error'}`);
       }
     } catch (err) {
-      setError('Failed to generate report.');
+      console.error('Report download error:', err);
+      setError(`Failed to download report: ${err.message}`);
     } finally {
       setReportLoading(prev => ({ ...prev, [profileId]: false }));
     }
@@ -324,24 +329,40 @@ function ProfileManagement(props) {
               {/* Simulations List */}
               {profileSimulations[profile.id] && profileSimulations[profile.id].length > 0 && (
                 <div className="simulations-list">
-                  <h5>Saved Scenarios</h5>
-                  {profileSimulations[profile.id].map(sim => (
-                    <div className="simulation-item" key={sim.id}>
-                      <div className="simulation-info">
-                        {sim.type === 'monteCarlo' ? 'Monte Carlo' : 'Basic Simulation'}
-                        <small> (Saved: {new Date(sim.created_at).toLocaleDateString()})</small>
+                  <h5>Saved Scenarios (Most Recent)</h5>
+                  {(() => {
+                    // Get the most recent simulation of each type
+                    const simulations = profileSimulations[profile.id];
+                    const basicSim = simulations.filter(s => s.type === 'basic').sort((a, b) => 
+                      new Date(b.created_at) - new Date(a.created_at)
+                    )[0];
+                    const mcSim = simulations.filter(s => s.type === 'monte_carlo').sort((a, b) => 
+                      new Date(b.created_at) - new Date(a.created_at)
+                    )[0];
+                    
+                    const recentSims = [];
+                    if (basicSim) recentSims.push(basicSim);
+                    if (mcSim) recentSims.push(mcSim);
+                    
+                    return recentSims.map(sim => (
+                      <div className="simulation-item" key={sim.id}>
+                        <div className="simulation-info">
+                          {sim.type === 'monte_carlo' ? 'Monte Carlo' : 'Basic Simulation'}
+                          <small> (Saved: {new Date(sim.created_at).toLocaleDateString()})</small>
+                          <small className="override-warning">⚠️ Saving new {sim.type === 'monte_carlo' ? 'Monte Carlo' : 'Basic'} will replace this</small>
+                        </div>
+                        <div className="simulation-actions">
+                          <button
+                            onClick={() => handleDeleteSimulation(profile.id, sim.id)}
+                            disabled={loading}
+                            className="delete-sim-btn"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                      <div className="simulation-actions">
-                        <button
-                          onClick={() => handleDeleteSimulation(profile.id, sim.id)}
-                          disabled={loading}
-                          className="delete-sim-btn"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
               )}
               
@@ -351,7 +372,7 @@ function ProfileManagement(props) {
                   className="report-btn"
                   disabled={loading || reportLoading[profile.id] || getProfileSimulationCount(profile.id) === 0}
                 >
-                  {reportLoading[profile.id] ? 'Generating...' : 'Download Full Report'}
+                  {reportLoading[profile.id] ? 'Generating PDF...' : 'Download Full Report (PDF)'}
                 </button>
                 <button 
                   onClick={() => handleEdit(profile)}
