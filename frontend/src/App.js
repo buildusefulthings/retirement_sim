@@ -80,6 +80,7 @@ function App() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [authError, setAuthError] = useState('');
 
@@ -755,15 +756,70 @@ function App() {
     }
   };
 
+  // Helper function to check password strength
+  const getPasswordStrength = (password) => {
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+    
+    const passedChecks = Object.values(checks).filter(Boolean).length;
+    return { checks, passedChecks, totalChecks: 5 };
+  };
+
   const handleSignup = async (e) => {
     e.preventDefault();
     setAuthError('');
+    
+    if (!email || !password || !confirmPassword) {
+      setAuthError('Please enter both email, password, and confirm password.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setAuthError('Passwords do not match.');
+      return;
+    }
+
+    // Password validation
+    if (password.length < 8) {
+      setAuthError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    // Check for at least one uppercase letter
+    if (!/[A-Z]/.test(password)) {
+      setAuthError('Password must contain at least one uppercase letter.');
+      return;
+    }
+
+    // Check for at least one lowercase letter
+    if (!/[a-z]/.test(password)) {
+      setAuthError('Password must contain at least one lowercase letter.');
+      return;
+    }
+
+    // Check for at least one number
+    if (!/\d/.test(password)) {
+      setAuthError('Password must contain at least one number.');
+      return;
+    }
+
+    // Check for at least one special character
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      setAuthError('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>).');
+      return;
+    }
     
     try {
       await signup(email, password);
       setShowSignup(false);
       setEmail('');
       setPassword('');
+      setConfirmPassword('');
     } catch (error) {
       setAuthError('Signup failed: ' + error.message);
     }
@@ -888,7 +944,7 @@ function App() {
               {runCount}/{FREE_RUN_LIMIT} free runs remaining
             </span>
             <button onClick={() => { setShowLogin(true); setShowSignup(false); setShowForgotPassword(false); }}>Login</button>
-            <button onClick={() => { setShowSignup(true); setShowLogin(false); setShowForgotPassword(false); }}>Sign Up</button>
+            <button onClick={() => { setShowSignup(true); setShowLogin(false); setShowForgotPassword(false); setConfirmPassword(''); }}>Sign Up</button>
           </>
         )}
       </div>
@@ -915,8 +971,44 @@ function App() {
         <form onSubmit={handleSignup} className="auth-form">
           <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
           <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
+          <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+          
+          {/* Password Requirements */}
+          {password && (
+            <div className="password-requirements">
+              <h4>Password Requirements:</h4>
+              <ul>
+                <li className={password.length >= 8 ? 'valid' : 'invalid'}>
+                  ✓ At least 8 characters long
+                </li>
+                <li className={/[A-Z]/.test(password) ? 'valid' : 'invalid'}>
+                  ✓ Contains uppercase letter
+                </li>
+                <li className={/[a-z]/.test(password) ? 'valid' : 'invalid'}>
+                  ✓ Contains lowercase letter
+                </li>
+                <li className={/\d/.test(password) ? 'valid' : 'invalid'}>
+                  ✓ Contains number
+                </li>
+                <li className={/[!@#$%^&*(),.?":{}|<>]/.test(password) ? 'valid' : 'invalid'}>
+                  ✓ Contains special character
+                </li>
+              </ul>
+              <div className="password-strength">
+                Strength: {getPasswordStrength(password).passedChecks}/5
+              </div>
+            </div>
+          )}
+          
+          {/* Password Match Indicator */}
+          {confirmPassword && (
+            <div className={`password-match ${password === confirmPassword ? 'valid' : 'invalid'}`}>
+              {password === confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+            </div>
+          )}
+          
           <button type="submit">Sign Up</button>
-          <button type="button" onClick={() => setShowSignup(false)}>Cancel</button>
+          <button type="button" onClick={() => { setShowSignup(false); setConfirmPassword(''); }}>Cancel</button>
           {authError && <div className="error-message">{authError}</div>}
         </form>
       )}
