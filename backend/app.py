@@ -383,6 +383,9 @@ def create_checkout_session():
         if not user_id:
             return jsonify({'error': 'User ID required'}), 400
         
+        # Get frontend URL from environment variable
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        
         # Handle coupon code redemption
         if plan_type == 'coupon' or coupon_code:
             if coupon_code.lower() == 'friends&fam':
@@ -411,8 +414,8 @@ def create_checkout_session():
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url='http://localhost:3000/payment-success?session_id={CHECKOUT_SESSION_ID}',
-                cancel_url='http://localhost:3000/payment-cancelled',
+                success_url=f'{frontend_url}/payment-success?session_id={{CHECKOUT_SESSION_ID}}',
+                cancel_url=f'{frontend_url}/payment-cancelled',
                 metadata={'user_id': user_id, 'plan_type': plan_type}
             )
         elif plan_type == 'credits_15':
@@ -429,8 +432,8 @@ def create_checkout_session():
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url='http://localhost:3000/payment-success?session_id={CHECKOUT_SESSION_ID}',
-                cancel_url='http://localhost:3000/payment-cancelled',
+                success_url=f'{frontend_url}/payment-success?session_id={{CHECKOUT_SESSION_ID}}',
+                cancel_url=f'{frontend_url}/payment-cancelled',
                 metadata={'user_id': user_id, 'plan_type': plan_type}
             )
         elif plan_type == 'unlimited':
@@ -450,8 +453,8 @@ def create_checkout_session():
                     'quantity': 1,
                 }],
                 mode='subscription',
-                success_url='http://localhost:3000/payment-success?session_id={CHECKOUT_SESSION_ID}',
-                cancel_url='http://localhost:3000/payment-cancelled',
+                success_url=f'{frontend_url}/payment-success?session_id={{CHECKOUT_SESSION_ID}}',
+                cancel_url=f'{frontend_url}/payment-cancelled',
                 metadata={'user_id': user_id, 'plan_type': plan_type}
             )
         else:

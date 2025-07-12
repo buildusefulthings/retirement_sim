@@ -685,48 +685,52 @@ function App() {
     <div className="advanced-section">
       <div className="advanced-fields">
         <label>
-          APY Mean (default 0.07):
+          Annual Return Mean (default 0.07 as 7%):
           <input
             type="number"
             name="apy_mean"
             step="0.0001"
             value={params.apy_mean}
             onChange={handleMonteCarloConfigChange}
+            onFocus={(e) => e.target.select()}
           />
         </label>
         <label>
-          APY Std Dev (default 0.01):
+          Annual Return Std Dev (default 0.01 as 1%):
           <input
             type="number"
             name="apy_sd"
             step="0.0001"
             value={params.apy_sd}
             onChange={handleMonteCarloConfigChange}
+            onFocus={(e) => e.target.select()}
           />
         </label>
         <label>
-          Inflation Mean (default 0.025):
+          Inflation Rate Mean (default 0.025 as 2.5%):
           <input
             type="number"
             name="inflation_mean"
             step="0.0001"
             value={params.inflation_mean}
             onChange={handleMonteCarloConfigChange}
+            onFocus={(e) => e.target.select()}
           />
         </label>
         <label>
-          Inflation Std Dev (default 0.01):
+          Inflation Rate Std Dev (default 0.01 as 1%):
           <input
             type="number"
             name="inflation_sd"
             step="0.0001"
             value={params.inflation_sd}
             onChange={handleMonteCarloConfigChange}
+            onFocus={(e) => e.target.select()}
           />
         </label>
       </div>
       <div className="advanced-note">
-        <b>Note:</b> These parameters assume a <b>normal distribution</b> for APY and inflation in the Monte Carlo simulation.
+        <b>Note:</b> These parameters assume a <b>normal distribution</b> for Annual Return and Inflation Rate in the Monte Carlo simulation.
       </div>
     </div>
   );
@@ -1165,43 +1169,107 @@ function App() {
             <div className="form-grid">
               <label>
                 Starting Balance ($):
-                <input type="number" name="balance" value={params.balance} onChange={handleChange} />
+                <input 
+                  type="number" 
+                  name="balance" 
+                  value={params.balance} 
+                  onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
-                APY (e.g. 0.07):
-                <input type="number" step="0.0001" name="apy" value={params.apy} onChange={handleChange} />
+                Annual Percentage Return (e.g. 0.07 as 7%):
+                <input 
+                  type="number" 
+                  step="0.0001" 
+                  name="apy" 
+                  value={params.apy} 
+                  onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
-                Draw Rate (e.g. 0.04):
-                <input type="number" step="0.0001" name="draw" value={params.draw} onChange={handleChange} />
+                Draw-Down Rate (e.g. 0.04):
+                <input 
+                  type="number" 
+                  step="0.0001" 
+                  name="draw" 
+                  value={params.draw} 
+                  onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
-                Years:
-                <input type="number" name="duration" value={params.duration} onChange={handleChange} />
+                Years to Simulation:
+                <input 
+                  type="number" 
+                  name="duration" 
+                  value={params.duration} 
+                  onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
                 Current Annual Expense (after-tax $):
-                <input type="number" name="curr_exp" value={params.curr_exp} onChange={handleChange} />
+                <input 
+                  type="number" 
+                  name="curr_exp" 
+                  value={params.curr_exp} 
+                  onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
                 Tax Rate (e.g. 0.22):
-                <input type="number" step="0.0001" name="tax_rate" value={params.tax_rate} onChange={handleChange} />
+                <input 
+                  type="number" 
+                  step="0.0001" 
+                  name="tax_rate" 
+                  value={params.tax_rate} 
+                  onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
-                Inflation (e.g. 0.025):
-                <input type="number" step="0.0001" name="inflation" value={params.inflation} onChange={handleChange} />
+                Inflation Rate (e.g. 0.025 as 2.5%):
+                <input 
+                  type="number" 
+                  step="0.0001" 
+                  name="inflation" 
+                  value={params.inflation} 
+                  onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
                 Annual Contribution ($):
-                <input type="number" name="annual_contrib" value={params.annual_contrib} onChange={handleChange} />
+                <input 
+                  type="number" 
+                  name="annual_contrib" 
+                  value={params.annual_contrib} 
+                  onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
                 Contribution Years:
-                <input type="number" name="annual_contrib_years" value={params.annual_contrib_years} onChange={handleChange} />
+                <input 
+                  type="number" 
+                  name="annual_contrib_years" 
+                  value={params.annual_contrib_years} 
+                  onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
               <label>
                 Drawdown Start Year:
-                <input type="number" name="drawdown_start" value={params.drawdown_start} onChange={handleChange} />
+                <input 
+                  type="number" 
+                  name="drawdown_start" 
+                  value={params.drawdown_start} 
+                  onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
+                />
               </label>
             </div>
             <button type="submit" disabled={loading || !canRunSimulation()}>
@@ -1259,10 +1327,11 @@ function App() {
                     step="100"
                     value={params.simulations}
                     onChange={handleMonteCarloConfigChange}
+                    onFocus={(e) => e.target.select()}
                   />
                 </label>
                 <label>
-                  Target Success Rate (%):
+                  Target Success Rate (e.g. 0.90 as 90%):
                   <input
                     type="number"
                     name="target_success_rate"
@@ -1271,6 +1340,7 @@ function App() {
                     step="0.01"
                     value={params.target_success_rate}
                     onChange={handleMonteCarloConfigChange}
+                    onFocus={(e) => e.target.select()}
                   />
                 </label>
               </div>
