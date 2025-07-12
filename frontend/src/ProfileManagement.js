@@ -12,6 +12,7 @@ function ProfileManagement(props) {
   const [error, setError] = useState('');
   const [profileSimulations, setProfileSimulations] = useState({});
   const [reportLoading, setReportLoading] = useState({});
+  const [expandedProfiles, setExpandedProfiles] = useState(new Set()); // Track which profiles are expanded
   
   // Form states
   const [showAddForm, setShowAddForm] = useState(false);
@@ -238,6 +239,18 @@ function ProfileManagement(props) {
     return profileSimulations[profileId]?.length || 0;
   };
 
+  const toggleProfileExpansion = (profileId) => {
+    setExpandedProfiles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(profileId)) {
+        newSet.delete(profileId);
+      } else {
+        newSet.add(profileId);
+      }
+      return newSet;
+    });
+  };
+
   if (!user) {
     return (
       <div className="profile-management">
@@ -318,79 +331,109 @@ function ProfileManagement(props) {
             <p>No profiles found. Add your first profile to get started!</p>
           </div>
         ) : (
-          profiles.map(profile => (
-            <div className="profile-card" key={profile.id}>
-              <div className="profile-info">
-                <h4>{profile.name}</h4>
-                <p>Age: {profile.age}</p>
-                <p>Simulations: {getProfileSimulationCount(profile.id)} / 5</p>
-              </div>
-              
-              {/* Simulations List */}
-              {profileSimulations[profile.id] && profileSimulations[profile.id].length > 0 && (
-                <div className="simulations-list">
-                  <h5>Saved Scenarios (Most Recent)</h5>
-                  {(() => {
-                    // Get the most recent simulation of each type
-                    const simulations = profileSimulations[profile.id];
-                    const basicSim = simulations.filter(s => s.type === 'basic').sort((a, b) => 
-                      new Date(b.created_at) - new Date(a.created_at)
-                    )[0];
-                    const mcSim = simulations.filter(s => s.type === 'monte_carlo').sort((a, b) => 
-                      new Date(b.created_at) - new Date(a.created_at)
-                    )[0];
-                    
-                    const recentSims = [];
-                    if (basicSim) recentSims.push(basicSim);
-                    if (mcSim) recentSims.push(mcSim);
-                    
-                    return recentSims.map(sim => (
-                      <div className="simulation-item" key={sim.id}>
-                        <div className="simulation-info">
-                          {sim.type === 'monte_carlo' ? 'Monte Carlo' : 'Basic Simulation'}
-                          <small> (Saved: {new Date(sim.created_at).toLocaleDateString()})</small>
-                          <small className="override-warning">⚠️ Saving new {sim.type === 'monte_carlo' ? 'Monte Carlo' : 'Basic'} will replace this</small>
-                        </div>
-                        <div className="simulation-actions">
-                          <button
-                            onClick={() => handleDeleteSimulation(profile.id, sim.id)}
-                            disabled={loading}
-                            className="delete-sim-btn"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    ));
-                  })()}
+          profiles.map(profile => {
+            const isExpanded = expandedProfiles.has(profile.id);
+            const simulationCount = getProfileSimulationCount(profile.id);
+            
+            return (
+              <div className="profile-card" key={profile.id}>
+                {/* Profile Header - Always Visible */}
+                <div className="profile-header-mini" onClick={() => toggleProfileExpansion(profile.id)}>
+                  <div className="profile-header-info">
+                    <h4>{profile.name}</h4>
+                    <span className="profile-summary">
+                      Age: {profile.age} • Simulations: {simulationCount} / 5
+                    </span>
+                  </div>
+                  <div className="profile-header-actions">
+                    <button 
+                      className="expand-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleProfileExpansion(profile.id);
+                      }}
+                    >
+                      {isExpanded ? '▼' : '▶'}
+                    </button>
+                  </div>
                 </div>
-              )}
-              
-              <div className="profile-actions">
-                <button 
-                  onClick={() => handleDownloadFullReport(profile.id)}
-                  className="report-btn"
-                  disabled={loading || reportLoading[profile.id] || getProfileSimulationCount(profile.id) === 0}
-                >
-                  {reportLoading[profile.id] ? 'Generating PDF...' : 'Download Full Report (PDF)'}
-                </button>
-                <button 
-                  onClick={() => handleEdit(profile)}
-                  disabled={loading}
-                  className="edit-btn"
-                >
-                  Edit
-                </button>
-                <button 
-                  onClick={() => handleDelete(profile.id)}
-                  disabled={loading}
-                  className="delete-btn"
-                >
-                  Delete
-                </button>
+                
+                {/* Profile Details - Only Visible When Expanded */}
+                {isExpanded && (
+                  <div className="profile-details">
+                    <div className="profile-info">
+                      <p>Age: {profile.age}</p>
+                      <p>Simulations: {simulationCount} / 5</p>
+                    </div>
+                    
+                    {/* Simulations List */}
+                    {profileSimulations[profile.id] && profileSimulations[profile.id].length > 0 && (
+                      <div className="simulations-list">
+                        <h5>Saved Scenarios (Most Recent)</h5>
+                        {(() => {
+                          // Get the most recent simulation of each type
+                          const simulations = profileSimulations[profile.id];
+                          const basicSim = simulations.filter(s => s.type === 'basic').sort((a, b) => 
+                            new Date(b.created_at) - new Date(a.created_at)
+                          )[0];
+                          const mcSim = simulations.filter(s => s.type === 'monte_carlo').sort((a, b) => 
+                            new Date(b.created_at) - new Date(a.created_at)
+                          )[0];
+                          
+                          const recentSims = [];
+                          if (basicSim) recentSims.push(basicSim);
+                          if (mcSim) recentSims.push(mcSim);
+                          
+                          return recentSims.map(sim => (
+                            <div className="simulation-item" key={sim.id}>
+                              <div className="simulation-info">
+                                {sim.type === 'monte_carlo' ? 'Monte Carlo' : 'Basic Simulation'}
+                                <small> (Saved: {new Date(sim.created_at).toLocaleDateString()})</small>
+                                <small className="override-warning">⚠️ Saving new {sim.type === 'monte_carlo' ? 'Monte Carlo' : 'Basic'} will replace this</small>
+                              </div>
+                              <div className="simulation-actions">
+                                <button
+                                  onClick={() => handleDeleteSimulation(profile.id, sim.id)}
+                                  disabled={loading}
+                                  className="delete-sim-btn"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    )}
+                    
+                    <div className="profile-actions">
+                      <button 
+                        onClick={() => handleDownloadFullReport(profile.id)}
+                        className="report-btn"
+                        disabled={loading || reportLoading[profile.id] || simulationCount === 0}
+                      >
+                        {reportLoading[profile.id] ? 'Generating PDF...' : 'Download Full Report (PDF)'}
+                      </button>
+                      <button 
+                        onClick={() => handleEdit(profile)}
+                        disabled={loading}
+                        className="edit-btn"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(profile.id)}
+                        disabled={loading}
+                        className="delete-btn"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
