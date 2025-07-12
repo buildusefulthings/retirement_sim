@@ -13,7 +13,7 @@ import {
 } from 'chart.js';
 import { useAuth } from './AuthContext';
 import { loadStripe } from '@stripe/stripe-js';
-import ClientManagement from './ClientManagement';
+import ProfileManagement from './ProfileManagement';
 
 // Initialize Stripe with environment variable
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_51RblCy2cgrofQckH5WPY6gKoArTxNVx7KrXAADLJIvwkRYWbbAmkTjjkKct603mcB5ECjOhtpCnEvNADTyOR30Cd00XdCQJWMk');
@@ -99,10 +99,10 @@ function App() {
   });
   const [creditsLoading, setCreditsLoading] = useState(false);
 
-  // Client management state
-  const [clients, setClients] = useState([]);
-  const [selectedClient, setSelectedClient] = useState('');
-  const [showClientManagement, setShowClientManagement] = useState(false);
+  // Profile management state
+  const [profiles, setProfiles] = useState([]);
+  const [selectedProfile, setSelectedProfile] = useState('');
+  const [showProfileManagement, setShowProfileManagement] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Simulation run limits
@@ -140,24 +140,24 @@ function App() {
     }
   };
 
-  // Fetch user clients
-  const fetchClients = async (userId) => {
+  // Fetch user profiles
+  const fetchProfiles = async (userId) => {
     if (!userId) return;
     
     try {
       const response = await fetch(`${API_BASE_URL}/api/clients?user_id=${userId}`);
       if (response.ok) {
         const data = await response.json();
-        setClients(data);
+        setProfiles(data);
       }
     } catch (err) {
-      console.error('Error fetching clients:', err);
+      console.error('Error fetching profiles:', err);
     }
   };
 
-  // Callback to update clients from child
-  const handleClientsChanged = () => {
-    if (user) fetchClients(user.uid);
+  // Callback to update profiles from child
+  const handleProfilesChanged = () => {
+    if (user) fetchProfiles(user.uid);
   };
 
   // Check if backend is running
@@ -190,14 +190,14 @@ function App() {
       setRunCount(0); // Reset for new session/login
       setLimitReached(false);
       fetchUserCredits(user.uid);
-      fetchClients(user.uid);
+      fetchProfiles(user.uid);
     } else {
       const guestRuns = parseInt(localStorage.getItem('guestRunCount') || '0', 10);
       setRunCount(guestRuns);
       setLimitReached(guestRuns >= FREE_RUN_LIMIT);
       setUserCredits({ credits: 0, subscription_status: 'none', unlimited: false });
-      setClients([]);
-      setSelectedClient('');
+      setProfiles([]);
+      setSelectedProfile('');
     }
     
     // Check backend health on mount
@@ -256,7 +256,7 @@ function App() {
     console.log('Starting simulation...');
     console.log('User:', user ? user.uid : 'guest');
     console.log('Can run simulation:', canRunSimulation());
-    console.log('Selected client:', selectedClient);
+    console.log('Selected profile:', selectedProfile);
     
     setLoading(true);
     setError(null);
@@ -265,8 +265,8 @@ function App() {
       const requestData = { ...params };
       if (user) {
         requestData.user_id = user.uid;
-        if (selectedClient) {
-          requestData.client_id = selectedClient;
+        if (selectedProfile) {
+          requestData.client_id = selectedProfile;
         }
       }
       
@@ -298,16 +298,16 @@ function App() {
       setLatestSim(prev => ({ ...prev, basic: { parameters: params, results: data } }));
       incrementRunCount();
       
-      // Show success message if saved to client
-      if (user && selectedClient) {
-        const selectedClientName = clients.find(c => c.id === selectedClient)?.name;
+      // Show success message if saved to profile
+      if (user && selectedProfile) {
+        const selectedProfileName = profiles.find(p => p.id === selectedProfile)?.name;
         setError(''); // Clear any previous errors
-        alert(`✅ Simulation saved to client: ${selectedClientName}`);
+        alert(`✅ Simulation saved to profile: ${selectedProfileName}`);
       }
       
-      // Refresh clients to update simulation counts
-      if (user && selectedClient) {
-        fetchClients(user.uid);
+      // Refresh profiles to update simulation counts
+      if (user && selectedProfile) {
+        fetchProfiles(user.uid);
       }
     } catch (err) {
       console.error('Simulation error:', err);
@@ -319,14 +319,14 @@ function App() {
 
   const handleSaveSimulation = async (simulationType) => {
     const simToSave = latestSim[simulationType];
-    if (!simToSave || !selectedClient) {
-      alert("Please select a client and run a simulation first.");
+    if (!simToSave || !selectedProfile) {
+      alert("Please select a profile and run a simulation first.");
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/clients/${selectedClient}/simulations`, {
+      const response = await fetch(`${API_BASE_URL}/api/clients/${selectedProfile}/simulations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -338,7 +338,7 @@ function App() {
 
       if (response.ok) {
         alert('Simulation saved successfully!');
-        fetchClients(user.uid); // Refresh client data
+        fetchProfiles(user.uid); // Refresh profile data
         // Clear the saved sim so it can't be saved again
         setLatestSim(prev => ({ ...prev, [simulationType]: null }));
       } else {
@@ -359,7 +359,7 @@ function App() {
     console.log('Starting Monte Carlo simulation...');
     console.log('User:', user ? user.uid : 'guest');
     console.log('Can run simulation:', canRunSimulation());
-    console.log('Selected client:', selectedClient);
+    console.log('Selected profile:', selectedProfile);
     
     setMcLoading(true);
     setMcError(null);
@@ -368,8 +368,8 @@ function App() {
       const requestData = { ...params };
       if (user) {
         requestData.user_id = user.uid;
-        if (selectedClient) {
-          requestData.client_id = selectedClient;
+        if (selectedProfile) {
+          requestData.client_id = selectedProfile;
         }
       }
       
@@ -402,16 +402,16 @@ function App() {
       setLatestSim(prev => ({ ...prev, monteCarlo: { parameters: params, results: data } }));
       incrementRunCount();
       
-      // Show success message if saved to client
-      if (user && selectedClient) {
-        const selectedClientName = clients.find(c => c.id === selectedClient)?.name;
+      // Show success message if saved to profile
+      if (user && selectedProfile) {
+        const selectedProfileName = profiles.find(p => p.id === selectedProfile)?.name;
         setMcError(''); // Clear any previous errors
-        alert(`✅ Monte Carlo simulation saved to client: ${selectedClientName}`);
+        alert(`✅ Monte Carlo simulation saved to profile: ${selectedProfileName}`);
       }
       
-      // Refresh clients to update simulation counts
-      if (user && selectedClient) {
-        fetchClients(user.uid);
+      // Refresh profiles to update simulation counts
+      if (user && selectedProfile) {
+        fetchProfiles(user.uid);
       }
     } catch (err) {
       console.error('Monte Carlo error:', err);
@@ -934,7 +934,7 @@ function App() {
               </div>
             )}
             <button onClick={toggleSidebar} className="sidebar-toggle">
-              {sidebarOpen ? '✕' : '☰'} Clients
+              {sidebarOpen ? '✕' : '☰'} Profiles
             </button>
             <button onClick={logout}>Logout</button>
           </>
@@ -1037,11 +1037,11 @@ function App() {
         {user && (
           <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
             <div className="sidebar-header">
-              <h3>Client Management</h3>
+              <h3>Profile Management</h3>
               <button onClick={toggleSidebar} className="sidebar-close">✕</button>
             </div>
             <div className="sidebar-content">
-              <ClientManagement onClientsChanged={handleClientsChanged} />
+              <ProfileManagement onProfilesChanged={handleProfilesChanged} />
             </div>
           </aside>
         )}
@@ -1051,40 +1051,40 @@ function App() {
           <form className="sim-form" onSubmit={handleSimulate}>
             <h2>Simulation Parameters</h2>
             
-            {/* Client Selector for logged-in users */}
+            {/* Profile Selector for logged-in users */}
             {user && (
-              <div className="client-selector">
+              <div className="profile-selector">
                 <label>
-                  Associate with Client (Optional):
+                  Associate with Profile (Optional):
                   <select 
-                    value={selectedClient} 
-                    onChange={(e) => setSelectedClient(e.target.value)}
+                    value={selectedProfile} 
+                    onChange={(e) => setSelectedProfile(e.target.value)}
                   >
-                    <option value="">No client selected</option>
-                    {clients.map(client => (
-                      <option key={client.id} value={client.id}>
-                        {client.name} (Age: {client.age})
+                    <option value="">No profile selected</option>
+                    {profiles.map(profile => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.name} (Age: {profile.age})
                       </option>
                     ))}
                   </select>
                 </label>
-                {selectedClient ? (
-                  <div className="client-info-display">
+                {selectedProfile ? (
+                  <div className="profile-info-display">
                     <small>
-                      ✅ Simulation will be saved to selected client. 
-                      Each client can have up to 5 simulations.
+                      ✅ Simulation will be saved to selected profile. 
+                      Each profile can have up to 5 simulations.
                     </small>
                   </div>
-                ) : clients.length > 0 ? (
-                  <div className="client-info-display">
+                ) : profiles.length > 0 ? (
+                  <div className="profile-info-display">
                     <small>
-                      💡 Select a client to save this simulation and generate reports later.
+                      💡 Select a profile to save this simulation and generate reports later.
                     </small>
                   </div>
                 ) : (
-                  <div className="client-info-display">
+                  <div className="profile-info-display">
                     <small>
-                      💡 Create a client in Client Management to save simulations and generate reports.
+                      💡 Create a profile in Profile Management to save simulations and generate reports.
                     </small>
                   </div>
                 )}
@@ -1143,11 +1143,11 @@ function App() {
             {loading && <div className="loading-message">Loading...</div>}
             {!loading && results && (
               <>
-                {latestSim.basic && selectedClient && (
+                {latestSim.basic && selectedProfile && (
                   <div className="save-action-bar">
-                    <span>Save this simulation to your selected client:</span>
+                    <span>Save this simulation to your selected profile:</span>
                     <button onClick={() => handleSaveSimulation('basic')} className="save-btn">
-                      Save to Client
+                      Save to Profile
                     </button>
                   </div>
                 )}
@@ -1222,11 +1222,11 @@ function App() {
             {mcLoading && <div className="loading-message">Loading Monte Carlo...</div>}
             {!mcLoading && mcResults && (
               <>
-                {latestSim.monteCarlo && selectedClient && (
+                {latestSim.monteCarlo && selectedProfile && (
                   <div className="save-action-bar">
-                    <span>Save this scenario to your selected client:</span>
+                    <span>Save this scenario to your selected profile:</span>
                     <button onClick={() => handleSaveSimulation('monteCarlo')} className="save-btn">
-                      Save to Client
+                      Save to Profile
                     </button>
                   </div>
                 )}

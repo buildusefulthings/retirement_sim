@@ -2,68 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import './App.css';
 
-function ClientManagement(props) {
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+function ProfileManagement(props) {
   const { user } = useAuth();
-  const [clients, setClients] = useState([]);
+  const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [clientSimulations, setClientSimulations] = useState({});
+  const [profileSimulations, setProfileSimulations] = useState({});
   const [reportLoading, setReportLoading] = useState({});
   
   // Form states
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingClient, setEditingClient] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     age: '',
     date_created: ''
   });
 
-  // Fetch clients on component mount
+  // Fetch profiles on component mount
   useEffect(() => {
     if (user) {
-      fetchClients();
+      fetchProfiles();
     }
   }, [user]);
 
-  const fetchClients = async () => {
+  const fetchProfiles = async () => {
     if (!user) return;
     
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/clients?user_id=${user.uid}`);
+      const response = await fetch(`${API_BASE_URL}/api/clients?user_id=${user.uid}`);
       if (response.ok) {
         const data = await response.json();
-        setClients(data);
+        setProfiles(data);
         
-        // Fetch simulations for each client
-        for (const client of data) {
-          await fetchClientSimulations(client.id);
+        // Fetch simulations for each profile
+        for (const profile of data) {
+          await fetchProfileSimulations(profile.id);
         }
       } else {
-        setError('Failed to fetch clients');
+        setError('Failed to fetch profiles');
       }
     } catch (err) {
-      setError('Failed to fetch clients');
+      setError('Failed to fetch profiles');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchClientSimulations = async (clientId) => {
+  const fetchProfileSimulations = async (profileId) => {
     if (!user) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/clients/${clientId}/simulations?user_id=${user.uid}`);
+      const response = await fetch(`${API_BASE_URL}/api/clients/${profileId}/simulations?user_id=${user.uid}`);
       if (response.ok) {
         const simulations = await response.json();
-        setClientSimulations(prev => ({
+        setProfileSimulations(prev => ({
           ...prev,
-          [clientId]: simulations
+          [profileId]: simulations
         }));
       }
     } catch (err) {
-      console.error('Error fetching simulations for client:', clientId, err);
+      console.error('Error fetching simulations for profile:', profileId, err);
     }
   };
 
@@ -81,7 +84,7 @@ function ClientManagement(props) {
       age: '',
       date_created: ''
     });
-    setEditingClient(null);
+    setEditingProfile(null);
     setShowAddForm(false);
   };
 
@@ -96,11 +99,11 @@ function ClientManagement(props) {
 
     setLoading(true);
     try {
-      const url = editingClient 
-        ? `http://localhost:5000/api/clients/${editingClient.id}`
-        : 'http://localhost:5000/api/clients';
+      const url = editingProfile 
+        ? `${API_BASE_URL}/api/clients/${editingProfile.id}`
+        : `${API_BASE_URL}/api/clients`;
       
-      const method = editingClient ? 'PUT' : 'POST';
+      const method = editingProfile ? 'PUT' : 'POST';
       
       const response = await fetch(url, {
         method,
@@ -112,73 +115,73 @@ function ClientManagement(props) {
       });
 
       if (response.ok) {
-        await fetchClients();
+        await fetchProfiles();
         resetForm();
         setError('');
-        if (props.onClientsChanged) props.onClientsChanged();
-        alert(`✅ Client "${formData.name}" created successfully!`);
+        if (props.onProfilesChanged) props.onProfilesChanged();
+        alert(`✅ Profile "${formData.name}" ${editingProfile ? 'updated' : 'created'} successfully!`);
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to save client');
+        setError(errorData.error || 'Failed to save profile');
       }
     } catch (err) {
-      setError('Failed to save client');
+      setError('Failed to save profile');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = (client) => {
-    setEditingClient(client);
+  const handleEdit = (profile) => {
+    setEditingProfile(profile);
     setFormData({
-      name: client.name,
-      age: client.age,
-      date_created: client.date_created || ''
+      name: profile.name,
+      age: profile.age,
+      date_created: profile.date_created || ''
     });
     setShowAddForm(true);
   };
 
-  const handleDelete = async (clientId) => {
-    if (!user || !window.confirm('Are you sure you want to delete this client? This will also delete all associated simulations.')) {
+  const handleDelete = async (profileId) => {
+    if (!user || !window.confirm('Are you sure you want to delete this profile? This will also delete all associated simulations.')) {
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/clients/${clientId}?user_id=${user.uid}`, {
+      const response = await fetch(`${API_BASE_URL}/api/clients/${profileId}?user_id=${user.uid}`, {
         method: 'DELETE'
       });
 
       if (response.ok) {
-        await fetchClients();
+        await fetchProfiles();
         setError('');
-        if (props.onClientsChanged) props.onClientsChanged();
-        alert('✅ Client deleted successfully!');
+        if (props.onProfilesChanged) props.onProfilesChanged();
+        alert('✅ Profile deleted successfully!');
       } else {
-        setError('Failed to delete client');
+        setError('Failed to delete profile');
       }
     } catch (err) {
-      setError('Failed to delete client');
+      setError('Failed to delete profile');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteSimulation = async (clientId, simulationId) => {
+  const handleDeleteSimulation = async (profileId, simulationId) => {
     if (!user || !window.confirm('Are you sure you want to delete this simulation? This action cannot be undone.')) {
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/clients/${clientId}/simulations/${simulationId}?user_id=${user.uid}`, {
+      const response = await fetch(`${API_BASE_URL}/api/clients/${profileId}/simulations/${simulationId}?user_id=${user.uid}`, {
         method: 'DELETE'
       });
 
       if (response.ok) {
-        await fetchClients();
+        await fetchProfiles();
         setError('');
-        if (props.onClientsChanged) props.onClientsChanged();
+        if (props.onProfilesChanged) props.onProfilesChanged();
         alert('✅ Simulation deleted successfully!');
       } else {
         setError('Failed to delete simulation');
@@ -190,15 +193,15 @@ function ClientManagement(props) {
     }
   };
 
-  const handleDownloadFullReport = async (clientId) => {
+  const handleDownloadFullReport = async (profileId) => {
     if (!user) return;
 
-    // Use clientId for loading state to avoid conflicts
-    setReportLoading(prev => ({ ...prev, [clientId]: true }));
+    // Use profileId for loading state to avoid conflicts
+    setReportLoading(prev => ({ ...prev, [profileId]: true }));
     setError('');
 
     try {
-      const response = await fetch(`http://localhost:5000/api/clients/${clientId}/report`, {
+      const response = await fetch(`${API_BASE_URL}/api/clients/${profileId}/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.uid }),
@@ -209,54 +212,54 @@ function ClientManagement(props) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Retirement_Report_Client_${clientId}.pdf`;
+        a.download = `Retirement_Report_Profile_${profileId}.pdf`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
-        // Refresh client list after report generation
-        if (props.onClientsChanged) props.onClientsChanged();
+        // Refresh profile list after report generation
+        if (props.onProfilesChanged) props.onProfilesChanged();
       } else {
         setError('Failed to generate report.');
       }
     } catch (err) {
       setError('Failed to generate report.');
     } finally {
-      setReportLoading(prev => ({ ...prev, [clientId]: false }));
+      setReportLoading(prev => ({ ...prev, [profileId]: false }));
     }
   };
 
-  const getClientSimulationCount = (clientId) => {
-    return clientSimulations[clientId]?.length || 0;
+  const getProfileSimulationCount = (profileId) => {
+    return profileSimulations[profileId]?.length || 0;
   };
 
   if (!user) {
     return (
-      <div className="client-management">
-        <div className="error-message">Please log in to manage clients.</div>
+      <div className="profile-management">
+        <div className="error-message">Please log in to manage profiles.</div>
       </div>
     );
   }
 
   return (
-    <div className="client-management">
-      <div className="client-header">
-        <h2>Client Management</h2>
+    <div className="profile-management">
+      <div className="profile-header">
+        <h2>Profile Management</h2>
         <button 
           onClick={() => setShowAddForm(true)} 
-          className="add-client-btn"
+          className="add-profile-btn"
           disabled={loading}
         >
-          Add New Client
+          Add New Profile
         </button>
       </div>
 
       {error && <div className="error-message">{error}</div>}
 
       {showAddForm && (
-        <div className="client-form-overlay">
-          <div className="client-form">
-            <h3>{editingClient ? 'Edit Client' : 'Add New Client'}</h3>
+        <div className="profile-form-overlay">
+          <div className="profile-form">
+            <h3>{editingProfile ? 'Edit Profile' : 'Add New Profile'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Name:</label>
@@ -291,7 +294,7 @@ function ClientManagement(props) {
               </div>
               <div className="form-buttons">
                 <button type="submit" disabled={loading}>
-                  {loading ? 'Saving...' : (editingClient ? 'Update Client' : 'Add Client')}
+                  {loading ? 'Saving...' : (editingProfile ? 'Update Profile' : 'Add Profile')}
                 </button>
                 <button type="button" onClick={resetForm} disabled={loading}>
                   Cancel
@@ -302,27 +305,27 @@ function ClientManagement(props) {
         </div>
       )}
 
-      <div className="clients-list">
+      <div className="profiles-list">
         {loading && !showAddForm ? (
-          <div className="loading-message">Loading clients...</div>
-        ) : clients.length === 0 ? (
-          <div className="no-clients">
-            <p>No clients found. Add your first client to get started!</p>
+          <div className="loading-message">Loading profiles...</div>
+        ) : profiles.length === 0 ? (
+          <div className="no-profiles">
+            <p>No profiles found. Add your first profile to get started!</p>
           </div>
         ) : (
-          clients.map(client => (
-            <div className="client-card" key={client.id}>
-              <div className="client-info">
-                <h4>{client.name}</h4>
-                <p>Age: {client.age}</p>
-                <p>Simulations: {getClientSimulationCount(client.id)} / 5</p>
+          profiles.map(profile => (
+            <div className="profile-card" key={profile.id}>
+              <div className="profile-info">
+                <h4>{profile.name}</h4>
+                <p>Age: {profile.age}</p>
+                <p>Simulations: {getProfileSimulationCount(profile.id)} / 5</p>
               </div>
               
               {/* Simulations List */}
-              {clientSimulations[client.id] && clientSimulations[client.id].length > 0 && (
+              {profileSimulations[profile.id] && profileSimulations[profile.id].length > 0 && (
                 <div className="simulations-list">
                   <h5>Saved Scenarios</h5>
-                  {clientSimulations[client.id].map(sim => (
+                  {profileSimulations[profile.id].map(sim => (
                     <div className="simulation-item" key={sim.id}>
                       <div className="simulation-info">
                         {sim.type === 'monteCarlo' ? 'Monte Carlo' : 'Basic Simulation'}
@@ -330,7 +333,7 @@ function ClientManagement(props) {
                       </div>
                       <div className="simulation-actions">
                         <button
-                          onClick={() => handleDeleteSimulation(client.id, sim.id)}
+                          onClick={() => handleDeleteSimulation(profile.id, sim.id)}
                           disabled={loading}
                           className="delete-sim-btn"
                         >
@@ -342,23 +345,23 @@ function ClientManagement(props) {
                 </div>
               )}
               
-              <div className="client-actions">
+              <div className="profile-actions">
                 <button 
-                  onClick={() => handleDownloadFullReport(client.id)}
+                  onClick={() => handleDownloadFullReport(profile.id)}
                   className="report-btn"
-                  disabled={loading || reportLoading[client.id] || getClientSimulationCount(client.id) === 0}
+                  disabled={loading || reportLoading[profile.id] || getProfileSimulationCount(profile.id) === 0}
                 >
-                  {reportLoading[client.id] ? 'Generating...' : 'Download Full Report'}
+                  {reportLoading[profile.id] ? 'Generating...' : 'Download Full Report'}
                 </button>
                 <button 
-                  onClick={() => handleEdit(client)}
+                  onClick={() => handleEdit(profile)}
                   disabled={loading}
                   className="edit-btn"
                 >
                   Edit
                 </button>
                 <button 
-                  onClick={() => handleDelete(client.id)}
+                  onClick={() => handleDelete(profile.id)}
                   disabled={loading}
                   className="delete-btn"
                 >
@@ -373,4 +376,4 @@ function ClientManagement(props) {
   );
 }
 
-export default ClientManagement; 
+export default ProfileManagement; 

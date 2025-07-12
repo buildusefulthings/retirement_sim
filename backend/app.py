@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 # from datetime import datetime, timedelta
 from report_generator import generate_retirement_report
 import io
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -113,9 +114,9 @@ def create_client(user_id, client_data):
         'id': client_id,
         'name': client_data['name'],
         'age': client_data['age'],
-        'date_created': client_data.get('date_created', ''),
+        'date_created': client_data.get('date_created', datetime.now().strftime('%Y-%m-%d')),
         'user_id': user_id,
-        'created_at': '2025-06-22'  # For testing, use current date
+        'created_at': datetime.now().isoformat()
     }
     
     client_storage[user_id].append(client)
@@ -174,7 +175,7 @@ def save_simulation(user_id, client_id, simulation_data, simulation_type='basic'
         'user_id': user_id,
         'type': simulation_type,
         'data': simulation_data,
-        'created_at': '2025-06-22',  # For testing
+        'created_at': datetime.now().isoformat(),
         'parameters': simulation_data.get('parameters', {}),
         'results': simulation_data.get('results', {})
     }
@@ -220,13 +221,13 @@ def api_simulate():
     )
     
     # Save simulation to client if client_id provided
-    # if user_id and client_id:
-    #     simulation_data = {
-    #         'parameters': data,
-    #         'results': result,
-    #         'type': 'basic'
-    #     }
-    #     save_simulation(user_id, client_id, simulation_data, 'basic')
+    if user_id and client_id:
+        simulation_data = {
+            'parameters': data,
+            'results': result,
+            'type': 'basic'
+        }
+        save_simulation(user_id, client_id, simulation_data, 'basic')
     
     # Deduct credit if user is logged in
     if user_id:
@@ -265,13 +266,13 @@ def api_monte_carlo():
     )
     
     # Save simulation to client if client_id provided
-    # if user_id and client_id:
-    #     simulation_data = {
-    #         'parameters': data,
-    #         'results': {'success_rates': result.tolist()},
-    #         'type': 'monte_carlo'
-    #     }
-    #     save_simulation(user_id, client_id, simulation_data, 'monte_carlo')
+    if user_id and client_id:
+        simulation_data = {
+            'parameters': data,
+            'results': {'success_rates': result.tolist()},
+            'type': 'monte_carlo'
+        }
+        save_simulation(user_id, client_id, simulation_data, 'monte_carlo')
     
     # Deduct credit if user is logged in
     if user_id:
