@@ -383,20 +383,30 @@ def delete_simulation_endpoint(client_id, simulation_id):
 @app.route('/api/create-checkout-session', methods=['POST'])
 def create_checkout_session():
     try:
+        print("=== CREATE CHECKOUT SESSION STARTED ===")
+        print(f"stripe_available: {stripe_available}")
+        print(f"stripe_secret_key exists: {bool(os.getenv('STRIPE_SECRET_KEY'))}")
+        
         data = request.json
         plan_type = data.get('plan_type')
         user_id = data.get('user_id')
         coupon_code = data.get('coupon_code', '').strip()
+        
+        print(f"Request data: plan_type={plan_type}, user_id={user_id}, coupon_code={coupon_code}")
         
         if not user_id:
             return jsonify({'error': 'User ID required'}), 400
         
         # Check if Stripe is properly initialized
         if not stripe_available:
+            print("ERROR: Stripe is not available")
             return jsonify({'error': 'Payment system is not configured. Please contact support.'}), 500
+        
+        print("Stripe is available, proceeding with payment...")
         
         # Get frontend URL from environment variable
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        print(f"Frontend URL: {frontend_url}")
         
         # Handle coupon code redemption
         if coupon_code:
@@ -412,6 +422,8 @@ def create_checkout_session():
                 return jsonify({'error': 'Invalid coupon code'}), 400
         
         # Normal payment flow - only proceed if no coupon was provided
+        print(f"Creating Stripe session for plan: {plan_type}")
+        
         if plan_type == 'credits_5':
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
@@ -471,10 +483,16 @@ def create_checkout_session():
             )
         else:
             return jsonify({'error': 'Invalid plan type'}), 400
-            
+        
+        print(f"Stripe session created successfully: {session.id}")
         return jsonify({'sessionId': session.id})
+        
     except Exception as e:
-        print(f"Payment error: {e}")
+        print(f"=== PAYMENT ERROR ===")
+        print(f"Error type: {type(e)}")
+        print(f"Error message: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/webhook', methods=['POST'])
