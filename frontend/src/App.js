@@ -489,6 +489,59 @@ function App() {
     }
   };
 
+  // Handle coupon application
+  const handleCouponApply = async () => {
+    if (!user) {
+      setCouponError('Please log in to apply a coupon.');
+      return;
+    }
+    
+    if (!couponCode.trim()) {
+      setCouponError('Please enter a coupon code.');
+      return;
+    }
+    
+    setPaymentLoading(true);
+    setCouponError('');
+    setCouponSuccess('');
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          plan_type: 'coupon',
+          user_id: user.uid,
+          coupon_code: couponCode.trim()
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        setCouponError(errorData.error || 'Failed to apply coupon');
+        return;
+      }
+      
+      const data = await response.json();
+      
+      if (data.coupon_redeemed) {
+        setCouponSuccess(data.message || 'Coupon applied successfully! 100 credits have been added to your account.');
+        setCouponCode(''); // Clear the coupon code
+        // Refresh user credits
+        fetchUserCredits(user.uid);
+        setShowPayment(false); // Close payment modal
+      } else {
+        setCouponError('Invalid coupon code');
+      }
+      
+    } catch (err) {
+      console.error('Coupon error:', err);
+      setCouponError('Failed to apply coupon. Please try again.');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   // Handle payment
   const handlePayment = async (planType) => {
     if (!user) {
@@ -499,8 +552,6 @@ function App() {
     console.log('Starting payment for plan:', planType, 'User:', user.uid);
     setPaymentLoading(true);
     setAuthError(''); // Clear previous errors
-    setCouponError(''); // Clear coupon errors
-    setCouponSuccess(''); // Clear coupon success
     
     try {
       const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
@@ -508,8 +559,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           plan_type: planType,
-          user_id: user.uid,
-          coupon_code: couponCode.trim() // Send coupon code if provided
+          user_id: user.uid
         })
       });
       
@@ -518,20 +568,11 @@ function App() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Payment error:', errorData);
-        throw new Error(errorData.error || 'Failed to create checkout session');
+        setAuthError(errorData.error || 'Failed to create checkout session');
+        return;
       }
       
       const data = await response.json();
-      
-      // Check if this was a coupon redemption (no Stripe session)
-      if (data.coupon_redeemed) {
-        setCouponSuccess('Coupon applied successfully! 100 credits have been added to your account.');
-        setCouponCode(''); // Clear the coupon code
-        // Refresh user credits
-        fetchUserCredits(user.uid);
-        setShowPayment(false); // Close payment modal
-        return;
-      }
       
       // Normal Stripe flow
       const { sessionId } = data;
@@ -754,7 +795,7 @@ function App() {
             disabled={paymentLoading}
           />
           <button
-            onClick={() => handlePayment('coupon')}
+            onClick={handleCouponApply}
             disabled={paymentLoading || !couponCode.trim()}
             className="coupon-btn"
           >

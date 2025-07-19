@@ -387,7 +387,7 @@ def create_checkout_session():
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
         
         # Handle coupon code redemption
-        if plan_type == 'coupon' or coupon_code:
+        if coupon_code:
             if coupon_code.lower() == 'friends&fam':
                 # Grant 100 credits for the coupon
                 update_user_credits(user_id, credits_to_add=100)
@@ -399,7 +399,7 @@ def create_checkout_session():
             else:
                 return jsonify({'error': 'Invalid coupon code'}), 400
         
-        # Normal payment flow
+        # Normal payment flow - only proceed if no coupon was provided
         if plan_type == 'credits_5':
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
@@ -462,6 +462,7 @@ def create_checkout_session():
             
         return jsonify({'sessionId': session.id})
     except Exception as e:
+        print(f"Payment error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/webhook', methods=['POST'])
