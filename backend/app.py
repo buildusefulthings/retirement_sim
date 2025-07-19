@@ -27,7 +27,13 @@ CORS(app)
 #     db = None
 
 # Initialize Stripe with environment variable
-stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+stripe_secret_key = os.getenv('STRIPE_SECRET_KEY')
+if not stripe_secret_key:
+    print("WARNING: STRIPE_SECRET_KEY not found in environment variables. Payment functionality will be disabled.")
+    stripe = None
+else:
+    stripe.api_key = stripe_secret_key
+    print(f"Stripe initialized with key: {stripe_secret_key[:20]}...")
 
 # User credit/subscription management (temporarily simplified)
 # In-memory storage for testing (will be replaced with Firebase)
@@ -382,6 +388,10 @@ def create_checkout_session():
         
         if not user_id:
             return jsonify({'error': 'User ID required'}), 400
+        
+        # Check if Stripe is properly initialized
+        if stripe is None:
+            return jsonify({'error': 'Payment system is not configured. Please contact support.'}), 500
         
         # Get frontend URL from environment variable
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
