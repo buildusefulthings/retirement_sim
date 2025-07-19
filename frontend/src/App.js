@@ -16,7 +16,15 @@ import { loadStripe } from '@stripe/stripe-js';
 import ProfileManagement from './ProfileManagement';
 
 // Initialize Stripe with environment variable
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_51RblCy2cgrofQckH5WPY6gKoArTxNVx7KrXAADLJIvwkRYWbbAmkTjjkKct603mcB5ECjOhtpCnEvNADTyOR30Cd00XdCQJWMk');
+const stripePromise = (() => {
+  const stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+  if (!stripeKey) {
+    console.warn('Stripe publishable key not found in environment variables');
+    return Promise.resolve(null);
+  }
+  console.log('Initializing Stripe with key:', stripeKey.substring(0, 20) + '...');
+  return loadStripe(stripeKey);
+})();
 
 // Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -550,10 +558,12 @@ function App() {
     }
     
     console.log('Starting payment for plan:', planType, 'User:', user.uid);
+    console.log('API_BASE_URL:', API_BASE_URL);
     setPaymentLoading(true);
     setAuthError(''); // Clear previous errors
     
     try {
+      console.log('Creating checkout session...');
       const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -564,30 +574,49 @@ function App() {
       });
       
       console.log('Payment response status:', response.status);
+      console.log('Payment response headers:', response.headers);
       
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Payment error:', errorData);
+        const errorText = await response.text();
+        console.error('Payment error response:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { error: errorText };
+        }
         setAuthError(errorData.error || 'Failed to create checkout session');
         return;
       }
       
       const data = await response.json();
+      console.log('Payment response data:', data);
       
       // Normal Stripe flow
       const { sessionId } = data;
+      if (!sessionId) {
+        throw new Error('No session ID received from server');
+      }
+      
       console.log('Got session ID:', sessionId);
+      console.log('Loading Stripe...');
       
       const stripe = await stripePromise;
+      console.log('Stripe loaded:', !!stripe);
+      
       if (!stripe) {
-        throw new Error('Stripe failed to load');
+        throw new Error('Stripe failed to load. Please check your internet connection and try again.');
       }
       
+      console.log('Redirecting to Stripe checkout...');
       const { error } = await stripe.redirectToCheckout({ sessionId });
+      
       if (error) {
         console.error('Stripe redirect error:', error);
-        throw error;
+        throw new Error(`Stripe error: ${error.message}`);
       }
+      
+      console.log('Stripe redirect successful');
       
     } catch (err) {
       console.error('Payment error:', err);
@@ -812,7 +841,10 @@ function App() {
           <p className="price">$5</p>
           <p>5 additional simulation runs</p>
           <button 
-            onClick={() => handlePayment('credits_5')}
+            onClick={() => {
+              console.log('5 Credits button clicked');
+              handlePayment('credits_5');
+            }}
             disabled={paymentLoading}
             className="payment-btn"
           >
@@ -824,7 +856,10 @@ function App() {
           <p className="price">$10</p>
           <p>15 additional simulation runs</p>
           <button 
-            onClick={() => handlePayment('credits_15')}
+            onClick={() => {
+              console.log('15 Credits button clicked');
+              handlePayment('credits_15');
+            }}
             disabled={paymentLoading}
             className="payment-btn"
           >
@@ -836,7 +871,10 @@ function App() {
           <p className="price">$20/month</p>
           <p>Unlimited simulations + Professional features</p>
           <button 
-            onClick={() => handlePayment('unlimited')}
+            onClick={() => {
+              console.log('Unlimited button clicked');
+              handlePayment('unlimited');
+            }}
             disabled={paymentLoading}
             className="payment-btn featured"
           >
