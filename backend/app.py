@@ -28,11 +28,13 @@ CORS(app)
 
 # Initialize Stripe with environment variable
 stripe_secret_key = os.getenv('STRIPE_SECRET_KEY')
+stripe_available = False
 if not stripe_secret_key:
     print("WARNING: STRIPE_SECRET_KEY not found in environment variables. Payment functionality will be disabled.")
-    stripe = None
+    stripe_available = False
 else:
     stripe.api_key = stripe_secret_key
+    stripe_available = True
     print(f"Stripe initialized with key: {stripe_secret_key[:20]}...")
 
 # User credit/subscription management (temporarily simplified)
@@ -390,7 +392,7 @@ def create_checkout_session():
             return jsonify({'error': 'User ID required'}), 400
         
         # Check if Stripe is properly initialized
-        if stripe is None:
+        if not stripe_available:
             return jsonify({'error': 'Payment system is not configured. Please contact support.'}), 500
         
         # Get frontend URL from environment variable
@@ -477,6 +479,10 @@ def create_checkout_session():
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
+    # Check if Stripe is available
+    if not stripe_available:
+        return jsonify({'error': 'Payment system is not configured'}), 500
+    
     payload = request.get_data()
     sig_header = request.headers.get('Stripe-Signature')
     
