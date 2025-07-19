@@ -191,6 +191,17 @@ def save_simulation(user_id, client_id, simulation_data, simulation_type='basic'
     simulation_storage[user_id].append(simulation)
     return simulation
 
+@app.route('/api/stripe-status', methods=['GET'])
+def stripe_status():
+    """Test endpoint to check Stripe configuration status"""
+    return jsonify({
+        'stripe_available': stripe_available,
+        'stripe_secret_key_exists': bool(os.getenv('STRIPE_SECRET_KEY')),
+        'frontend_url': os.getenv('FRONTEND_URL', 'http://localhost:3000'),
+        'stripe_module_loaded': stripe is not None,
+        'stripe_api_key_set': hasattr(stripe, 'api_key') if stripe else False
+    })
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint for production monitoring"""
