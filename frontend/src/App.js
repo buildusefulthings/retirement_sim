@@ -12,19 +12,7 @@ import {
   Legend
 } from 'chart.js';
 import { useAuth } from './AuthContext';
-import { loadStripe } from '@stripe/stripe-js';
 import ProfileManagement from './ProfileManagement';
-
-// Initialize Stripe with environment variable
-const stripePromise = (() => {
-  const stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
-  if (!stripeKey) {
-    console.warn('Stripe publishable key not found in environment variables');
-    return Promise.resolve(null);
-  }
-  console.log('Initializing Stripe with key:', stripeKey.substring(0, 20) + '...');
-  return loadStripe(stripeKey);
-})();
 
 // Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -95,15 +83,16 @@ function App() {
   // Payment state
   const [showPayment, setShowPayment] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [couponCode, setCouponCode] = useState('');
-  const [couponError, setCouponError] = useState('');
-  const [couponSuccess, setCouponSuccess] = useState('');
+  const [patreonAuthUrl, setPatreonAuthUrl] = useState('');
+  const [patreonLoading, setPatreonLoading] = useState(false);
 
   // User credits state
   const [userCredits, setUserCredits] = useState({
     credits: 0,
     subscription_status: 'none',
-    unlimited: false
+    unlimited: false,
+    patreon_member: false,
+    patreon_tier: null
   });
   const [creditsLoading, setCreditsLoading] = useState(false);
 
@@ -497,132 +486,74 @@ function App() {
     }
   };
 
-  // Handle coupon application
-  const handleCouponApply = async () => {
+  // Handle Patreon authentication
+  const handlePatreonAuth = async () => {
     if (!user) {
-      setCouponError('Please log in to apply a coupon.');
+      setAuthError('Please log in to verify your Patreon membership.');
       return;
     }
     
-    if (!couponCode.trim()) {
-      setCouponError('Please enter a coupon code.');
-      return;
-    }
-    
-    setPaymentLoading(true);
-    setCouponError('');
-    setCouponSuccess('');
+    setPatreonLoading(true);
+    setAuthError('');
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          plan_type: 'coupon',
-          user_id: user.uid,
-          coupon_code: couponCode.trim()
-        })
-      });
-      
+      // Get Patreon auth URL
+      const response = await fetch(`${API_BASE_URL}/api/patreon/auth-url`);
       if (!response.ok) {
-        const errorData = await response.json();
-        setCouponError(errorData.error || 'Failed to apply coupon');
-        return;
+        throw new Error('Failed to get Patreon auth URL');
       }
       
       const data = await response.json();
+      const authUrl = data.auth_url;
       
-      if (data.coupon_redeemed) {
-        setCouponSuccess(data.message || 'Coupon applied successfully! 100 credits have been added to your account.');
-        setCouponCode(''); // Clear the coupon code
-        // Refresh user credits
-        fetchUserCredits(user.uid);
-        setShowPayment(false); // Close payment modal
-      } else {
-        setCouponError('Invalid coupon code');
-      }
+      // Open Patreon auth in a popup window
+      const popup = window.open(authUrl, 'patreon-auth', 'width=600,height=700');
       
-    } catch (err) {
-      console.error('Coupon error:', err);
-      setCouponError('Failed to apply coupon. Please try again.');
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
-
-  // Handle payment
-  const handlePayment = async (planType) => {
-    if (!user) {
-      setAuthError('Please log in to make a payment.');
-      return;
-    }
-    
-    console.log('Starting payment for plan:', planType, 'User:', user.uid);
-    console.log('API_BASE_URL:', API_BASE_URL);
-    setPaymentLoading(true);
-    setAuthError(''); // Clear previous errors
-    
-    try {
-      console.log('Creating checkout session...');
-      const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          plan_type: planType,
-          user_id: user.uid
-        })
-      });
-      
-      console.log('Payment response status:', response.status);
-      console.log('Payment response headers:', response.headers);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Payment error response:', errorText);
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch (e) {
-          errorData = { error: errorText };
+      // Listen for the callback
+      const handleMessage = async (event) => {
+        if (event.origin !== window.location.origin) return;
+        
+        if (event.data.type === 'PATREON_CALLBACK') {
+          const { code } = event.data;
+          
+          try {
+            // Send auth code to backend
+            const callbackResponse = await fetch(`${API_BASE_URL}/api/patreon/callback`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: user.uid, code })
+            });
+            
+            if (!callbackResponse.ok) {
+              throw new Error('Failed to verify Patreon membership');
+            }
+            
+            const callbackData = await callbackResponse.json();
+            
+            if (callbackData.is_member) {
+              alert('✅ Patreon membership verified! You now have unlimited access to GlidePath.');
+              setShowPayment(false);
+              fetchUserCredits(user.uid); // Refresh user credits
+            } else {
+              alert('❌ Patreon membership not found. Please make sure you have joined our Patreon campaign.');
+            }
+          } catch (err) {
+            console.error('Patreon callback error:', err);
+            alert('Failed to verify Patreon membership. Please try again.');
+          } finally {
+            popup.close();
+            window.removeEventListener('message', handleMessage);
+            setPatreonLoading(false);
+          }
         }
-        setAuthError(errorData.error || 'Failed to create checkout session');
-        return;
-      }
+      };
       
-      const data = await response.json();
-      console.log('Payment response data:', data);
-      
-      // Normal Stripe flow
-      const { sessionId } = data;
-      if (!sessionId) {
-        throw new Error('No session ID received from server');
-      }
-      
-      console.log('Got session ID:', sessionId);
-      console.log('Loading Stripe...');
-      
-      const stripe = await stripePromise;
-      console.log('Stripe loaded:', !!stripe);
-      
-      if (!stripe) {
-        throw new Error('Stripe failed to load. Please check your internet connection and try again.');
-      }
-      
-      console.log('Redirecting to Stripe checkout...');
-      const { error } = await stripe.redirectToCheckout({ sessionId });
-      
-      if (error) {
-        console.error('Stripe redirect error:', error);
-        throw new Error(`Stripe error: ${error.message}`);
-      }
-      
-      console.log('Stripe redirect successful');
+      window.addEventListener('message', handleMessage);
       
     } catch (err) {
-      console.error('Payment error:', err);
-      setAuthError(`Payment failed: ${err.message}. Please try again.`);
-    } finally {
-      setPaymentLoading(false);
+      console.error('Patreon auth error:', err);
+      setAuthError('Failed to start Patreon authentication. Please try again.');
+      setPatreonLoading(false);
     }
   };
 
@@ -808,79 +739,70 @@ function App() {
   // Payment options component
   const renderPaymentOptions = () => (
     <div className="payment-options">
-      <h3>Upgrade Your Plan</h3>
-      <p>Choose a plan to continue running simulations:</p>
+      <h3>Support GlidePath on Patreon</h3>
+      <p>Join our Patreon community to get unlimited access to retirement simulations and support the development of GlidePath!</p>
       
-      {/* Coupon Code Section */}
-      <div className="coupon-section">
-        <h4>Have a Coupon Code?</h4>
-        <div className="coupon-input-group">
-          <input
-            type="text"
-            placeholder="Enter coupon code"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value)}
-            className="coupon-input"
-            disabled={paymentLoading}
-          />
-          <button
-            onClick={handleCouponApply}
-            disabled={paymentLoading || !couponCode.trim()}
-            className="coupon-btn"
-          >
-            {paymentLoading ? 'Processing...' : 'Apply Coupon'}
-          </button>
+      <div className="patreon-info">
+        <div className="patreon-benefits">
+          <h4>🎯 What You Get:</h4>
+          <ul>
+            <li>✅ <strong>Unlimited Simulations</strong> - Run as many retirement scenarios as you want</li>
+            <li>✅ <strong>Advanced Features</strong> - Monte Carlo analysis and detailed reports</li>
+            <li>✅ <strong>Profile Management</strong> - Save and organize your retirement plans</li>
+            <li>✅ <strong>Priority Support</strong> - Get help when you need it</li>
+            <li>✅ <strong>Early Access</strong> - Try new features before anyone else</li>
+          </ul>
         </div>
-        {couponError && <div className="coupon-error">{couponError}</div>}
-        {couponSuccess && <div className="coupon-success">{couponSuccess}</div>}
+        
+        <div className="patreon-tiers">
+          <div className="tier-card">
+            <h4>Basic Supporter</h4>
+            <p className="price">$5/month</p>
+            <ul>
+              <li>Unlimited simulations</li>
+              <li>Basic features</li>
+              <li>Community access</li>
+            </ul>
+          </div>
+          
+          <div className="tier-card featured">
+            <h4>Premium Supporter</h4>
+            <p className="price">$10/month</p>
+            <ul>
+              <li>Everything in Basic</li>
+              <li>Advanced features</li>
+              <li>Priority support</li>
+              <li>Early access to new features</li>
+            </ul>
+          </div>
+        </div>
       </div>
       
-      <div className="payment-cards">
-        <div className="payment-card">
-          <h4>5 Credits</h4>
-          <p className="price">$5</p>
-          <p>5 additional simulation runs</p>
-          <button 
-            onClick={() => {
-              console.log('5 Credits button clicked');
-              handlePayment('credits_5');
-            }}
-            disabled={paymentLoading}
-            className="payment-btn"
-          >
-            {paymentLoading ? 'Processing...' : 'Buy 5 Credits'}
-          </button>
-        </div>
-        <div className="payment-card">
-          <h4>15 Credits</h4>
-          <p className="price">$10</p>
-          <p>15 additional simulation runs</p>
-          <button 
-            onClick={() => {
-              console.log('15 Credits button clicked');
-              handlePayment('credits_15');
-            }}
-            disabled={paymentLoading}
-            className="payment-btn"
-          >
-            {paymentLoading ? 'Processing...' : 'Buy 15 Credits'}
-          </button>
-        </div>
-        <div className="payment-card featured">
-          <h4>Unlimited</h4>
-          <p className="price">$20/month</p>
-          <p>Unlimited simulations + Professional features</p>
-          <button 
-            onClick={() => {
-              console.log('Unlimited button clicked');
-              handlePayment('unlimited');
-            }}
-            disabled={paymentLoading}
-            className="payment-btn featured"
-          >
-            {paymentLoading ? 'Processing...' : 'Subscribe Unlimited'}
-          </button>
-        </div>
+      <div className="patreon-actions">
+        <button 
+          onClick={() => {
+            window.open('https://www.patreon.com/your-campaign', '_blank');
+          }}
+          className="patreon-btn primary"
+          disabled={patreonLoading}
+        >
+          {patreonLoading ? 'Loading...' : 'Join on Patreon'}
+        </button>
+        
+        <button 
+          onClick={handlePatreonAuth}
+          className="patreon-btn secondary"
+          disabled={patreonLoading}
+        >
+          {patreonLoading ? 'Verifying...' : 'I\'m Already a Patron'}
+        </button>
+      </div>
+      
+      <div className="patreon-note">
+        <p><small>
+          💡 <strong>How it works:</strong> Join our Patreon, then click "I'm Already a Patron" 
+          to verify your membership and unlock unlimited access to GlidePath.
+        </small></p>
       </div>
     </div>
   );
@@ -1075,7 +997,9 @@ function App() {
             <span>Welcome, {user.email}</span>
             {!creditsLoading && (
               <div className="user-credits">
-                {userCredits.unlimited ? (
+                {userCredits.patreon_member ? (
+                  <span className="patreon-badge">Patreon Member</span>
+                ) : userCredits.unlimited ? (
                   <span className="unlimited-badge">Unlimited</span>
                 ) : userCredits.subscription_status === 'active' ? (
                   <span className="subscription-badge">Active Subscription</span>

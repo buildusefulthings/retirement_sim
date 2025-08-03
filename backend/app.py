@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from simulator import simulation, monte_carlo_retirement, find_optimal_retirement_year
-import stripe
 import os
 from dotenv import load_dotenv
 # import firebase_admin
@@ -26,19 +25,12 @@ CORS(app)
 #     print(f"Firebase initialization failed: {e}")
 #     db = None
 
-# Initialize Stripe with environment variable
-stripe_secret_key = os.getenv('STRIPE_SECRET_KEY')
-stripe_available = False
-if not stripe_secret_key:
-    print("WARNING: STRIPE_SECRET_KEY not found in environment variables. Payment functionality will be disabled.")
-    stripe_available = False
-else:
-    stripe.api_key = stripe_secret_key
-    stripe_available = True
-    print(f"Stripe initialized with key: {stripe_secret_key[:20]}...")
+# Patreon configuration
+PATREON_CLIENT_ID = os.getenv('PATREON_CLIENT_ID')
+PATREON_CLIENT_SECRET = os.getenv('PATREON_CLIENT_SECRET')
+PATREON_REDIRECT_URI = os.getenv('PATREON_REDIRECT_URI', 'https://your-frontend-app.onrender.com/patreon-callback')
 
-# User credit/subscription management (temporarily simplified)
-# In-memory storage for testing (will be replaced with Firebase)
+# User credit/subscription management (simplified for Patreon)
 user_credits_storage = {}
 client_storage = {}
 simulation_storage = {}
@@ -50,17 +42,21 @@ def get_user_credits(user_id):
         user_credits_storage[user_id] = {
             'credits': 5,  # Start with 5 credits
             'subscription_status': 'none',
-            'unlimited': False
+            'unlimited': False,
+            'patreon_member': False,
+            'patreon_tier': None
         }
     return user_credits_storage[user_id]
 
-def update_user_credits(user_id, credits_to_add=0, subscription_status='none', unlimited=False):
+def update_user_credits(user_id, credits_to_add=0, subscription_status='none', unlimited=False, patreon_member=False, patreon_tier=None):
     """Update user's credits and subscription status"""
     if user_id not in user_credits_storage:
         user_credits_storage[user_id] = {
             'credits': 0,
             'subscription_status': 'none',
-            'unlimited': False
+            'unlimited': False,
+            'patreon_member': False,
+            'patreon_tier': None
         }
     
     if credits_to_add > 0:
@@ -72,16 +68,23 @@ def update_user_credits(user_id, credits_to_add=0, subscription_status='none', u
         user_credits_storage[user_id]['unlimited'] = unlimited
         print(f"Updated user {user_id} subscription status to {subscription_status}")
     
+    if patreon_member is not None:
+        user_credits_storage[user_id]['patreon_member'] = patreon_member
+        user_credits_storage[user_id]['patreon_tier'] = patreon_tier
+        print(f"Updated user {user_id} Patreon status: member={patreon_member}, tier={patreon_tier}")
+    
     return True
 
 def can_user_run_simulation(user_id):
     """Check if user can run a simulation"""
     user_data = get_user_credits(user_id)
     
-    if user_data['unlimited']:
+    # Patreon members get unlimited access
+    if user_data['patreon_member']:
         return True
     
-    if user_data['subscription_status'] == 'active':
+    # Legacy unlimited/subscription users
+    if user_data['unlimited'] or user_data['subscription_status'] == 'active':
         return True
     
     return user_data['credits'] > 0
@@ -93,9 +96,15 @@ def deduct_user_credit(user_id):
     
     user_data = user_credits_storage[user_id]
     
+    # Patreon members don't use credits
+    if user_data['patreon_member']:
+        print(f"User {user_id} is a Patreon member - no credit deduction")
+        return True
+    
+    # Legacy unlimited/subscription users
     if user_data['unlimited'] or user_data['subscription_status'] == 'active':
         print(f"User {user_id} has unlimited/subscription - no credit deduction")
-        return True  # No deduction for unlimited/subscription
+        return True
     
     if user_data['credits'] > 0:
         user_credits_storage[user_id]['credits'] -= 1
@@ -191,17 +200,6 @@ def save_simulation(user_id, client_id, simulation_data, simulation_type='basic'
     simulation_storage[user_id].append(simulation)
     return simulation
 
-@app.route('/api/stripe-status', methods=['GET'])
-def stripe_status():
-    """Test endpoint to check Stripe configuration status"""
-    return jsonify({
-        'stripe_available': stripe_available,
-        'stripe_secret_key_exists': bool(os.getenv('STRIPE_SECRET_KEY')),
-        'frontend_url': os.getenv('FRONTEND_URL', 'http://localhost:3000'),
-        'stripe_module_loaded': stripe is not None,
-        'stripe_api_key_set': hasattr(stripe, 'api_key') if stripe else False
-    })
-
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint for production monitoring"""
@@ -280,6 +278,129 @@ def get_credits():
     
     user_data = get_user_credits(user_id)
     return jsonify(user_data)
+
+# Patreon authentication endpoints
+@app.route('/api/patreon/auth-url', methods=['GET'])
+def get_patreon_auth_url():
+    """Get Patreon OAuth URL for user to authenticate"""
+    if not PATREON_CLIENT_ID:
+        return jsonify({'error': 'Patreon not configured'}), 500
+    
+    auth_url = f"https://www.patreon.com/oauth2/authorize?response_type=code&client_id={PATREON_CLIENT_ID}&redirect_uri={PATREON_REDIRECT_URI}&scope=identity%20identity.memberships"
+    return jsonify({'auth_url': auth_url})
+
+@app.route('/api/patreon/callback', methods=['POST'])
+def patreon_callback():
+    """Handle Patreon OAuth callback and check membership status"""
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        auth_code = data.get('code')
+        
+        if not user_id or not auth_code:
+            return jsonify({'error': 'User ID and auth code required'}), 400
+        
+        if not PATREON_CLIENT_ID or not PATREON_CLIENT_SECRET:
+            return jsonify({'error': 'Patreon not configured'}), 500
+        
+        # Exchange auth code for access token
+        import requests
+        
+        token_response = requests.post('https://www.patreon.com/api/oauth2/token', data={
+            'code': auth_code,
+            'grant_type': 'authorization_code',
+            'client_id': PATREON_CLIENT_ID,
+            'client_secret': PATREON_CLIENT_SECRET,
+            'redirect_uri': PATREON_REDIRECT_URI
+        })
+        
+        if token_response.status_code != 200:
+            return jsonify({'error': 'Failed to get access token'}), 400
+        
+        token_data = token_response.json()
+        access_token = token_data['access_token']
+        
+        # Get user identity and membership info
+        headers = {'Authorization': f'Bearer {access_token}'}
+        identity_response = requests.get('https://www.patreon.com/api/oauth2/v2/identity?include=memberships', headers=headers)
+        
+        if identity_response.status_code != 200:
+            return jsonify({'error': 'Failed to get user identity'}), 400
+        
+        identity_data = identity_response.json()
+        
+        # Check if user is a patron of your campaign
+        # You'll need to replace YOUR_CAMPAIGN_ID with your actual Patreon campaign ID
+        YOUR_CAMPAIGN_ID = os.getenv('PATREON_CAMPAIGN_ID')
+        
+        is_member = False
+        tier_name = None
+        
+        if 'included' in identity_data:
+            for item in identity_data['included']:
+                if item['type'] == 'member' and item['relationships']['campaign']['data']['id'] == YOUR_CAMPAIGN_ID:
+                    is_member = True
+                    # Get tier name if available
+                    if 'relationships' in item and 'currently_entitled_tiers' in item['relationships']:
+                        tier_data = item['relationships']['currently_entitled_tiers']['data']
+                        if tier_data:
+                            tier_name = tier_data[0]['id']  # You might want to map this to tier names
+        
+        # Update user's Patreon status
+        update_user_credits(user_id, patreon_member=is_member, patreon_tier=tier_name)
+        
+        return jsonify({
+            'success': True,
+            'is_member': is_member,
+            'tier': tier_name
+        })
+        
+    except Exception as e:
+        print(f"Patreon callback error: {e}")
+        return jsonify({'error': 'Failed to process Patreon authentication'}), 500
+
+@app.route('/api/patreon/check-membership', methods=['POST'])
+def check_patreon_membership():
+    """Check if a user is a Patreon member (for periodic checks)"""
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        
+        if not user_id:
+            return jsonify({'error': 'User ID required'}), 400
+        
+        user_data = get_user_credits(user_id)
+        
+        return jsonify({
+            'is_member': user_data.get('patreon_member', False),
+            'tier': user_data.get('patreon_tier'),
+            'can_run_simulation': can_user_run_simulation(user_id)
+        })
+        
+    except Exception as e:
+        print(f"Check membership error: {e}")
+        return jsonify({'error': 'Failed to check membership'}), 500
+
+# Remove old Stripe endpoints and replace with Patreon info
+@app.route('/api/payment-info', methods=['GET'])
+def get_payment_info():
+    """Get payment information for frontend"""
+    return jsonify({
+        'payment_system': 'patreon',
+        'patreon_url': 'https://www.patreon.com/your-campaign',  # Replace with your Patreon URL
+        'tiers': [
+            {
+                'name': 'Basic Supporter',
+                'price': '$5/month',
+                'benefits': ['Unlimited simulations', 'Basic features']
+            },
+            {
+                'name': 'Premium Supporter', 
+                'price': '$10/month',
+                'benefits': ['Unlimited simulations', 'Advanced features', 'Priority support']
+            }
+        ]
+    })
 
 # Client management endpoints
 @app.route('/api/clients', methods=['GET'])
@@ -389,158 +510,6 @@ def delete_simulation_endpoint(client_id, simulation_id):
         simulation_storage[user_id] = [s for s in simulation_storage[user_id] if s['id'] != simulation_id]
     
     return jsonify({'message': 'Simulation deleted successfully'})
-
-# Stripe payment endpoints
-@app.route('/api/create-checkout-session', methods=['POST'])
-def create_checkout_session():
-    try:
-        print("=== CREATE CHECKOUT SESSION STARTED ===")
-        print(f"stripe_available: {stripe_available}")
-        print(f"stripe_secret_key exists: {bool(os.getenv('STRIPE_SECRET_KEY'))}")
-        
-        data = request.json
-        plan_type = data.get('plan_type')
-        user_id = data.get('user_id')
-        coupon_code = data.get('coupon_code', '').strip()
-        
-        print(f"Request data: plan_type={plan_type}, user_id={user_id}, coupon_code={coupon_code}")
-        
-        if not user_id:
-            return jsonify({'error': 'User ID required'}), 400
-        
-        # Check if Stripe is properly initialized
-        if not stripe_available:
-            print("ERROR: Stripe is not available")
-            return jsonify({'error': 'Payment system is not configured. Please contact support.'}), 500
-        
-        print("Stripe is available, proceeding with payment...")
-        
-        # Get frontend URL from environment variable
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-        print(f"Frontend URL: {frontend_url}")
-        
-        # Handle coupon code redemption
-        if coupon_code:
-            if coupon_code.lower() == 'friends&fam':
-                # Grant 100 credits for the coupon
-                update_user_credits(user_id, credits_to_add=100)
-                print(f"Coupon 'friends&fam' redeemed for user {user_id} - 100 credits added")
-                return jsonify({
-                    'coupon_redeemed': True,
-                    'message': 'Coupon applied successfully! 100 credits have been added to your account.'
-                })
-            else:
-                return jsonify({'error': 'Invalid coupon code'}), 400
-        
-        # Normal payment flow - only proceed if no coupon was provided
-        print(f"Creating Stripe session for plan: {plan_type}")
-        
-        if plan_type == 'credits_5':
-            session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'usd',
-                        'product_data': {
-                            'name': '5 Simulation Credits',
-                        },
-                        'unit_amount': 500,
-                    },
-                    'quantity': 1,
-                }],
-                mode='payment',
-                success_url=f'{frontend_url}/payment-success?session_id={{CHECKOUT_SESSION_ID}}',
-                cancel_url=f'{frontend_url}/payment-cancelled',
-                metadata={'user_id': user_id, 'plan_type': plan_type}
-            )
-        elif plan_type == 'credits_15':
-            session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'usd',
-                        'product_data': {
-                            'name': '15 Simulation Credits',
-                        },
-                        'unit_amount': 1000,
-                    },
-                    'quantity': 1,
-                }],
-                mode='payment',
-                success_url=f'{frontend_url}/payment-success?session_id={{CHECKOUT_SESSION_ID}}',
-                cancel_url=f'{frontend_url}/payment-cancelled',
-                metadata={'user_id': user_id, 'plan_type': plan_type}
-            )
-        elif plan_type == 'unlimited':
-            session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'usd',
-                        'product_data': {
-                            'name': 'Unlimited Simulations',
-                        },
-                        'unit_amount': 2000,
-                        'recurring': {
-                            'interval': 'month',
-                        },
-                    },
-                    'quantity': 1,
-                }],
-                mode='subscription',
-                success_url=f'{frontend_url}/payment-success?session_id={{CHECKOUT_SESSION_ID}}',
-                cancel_url=f'{frontend_url}/payment-cancelled',
-                metadata={'user_id': user_id, 'plan_type': plan_type}
-            )
-        else:
-            return jsonify({'error': 'Invalid plan type'}), 400
-        
-        print(f"Stripe session created successfully: {session.id}")
-        return jsonify({'sessionId': session.id})
-        
-    except Exception as e:
-        print(f"=== PAYMENT ERROR ===")
-        print(f"Error type: {type(e)}")
-        print(f"Error message: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/webhook', methods=['POST'])
-def webhook():
-    # Check if Stripe is available
-    if not stripe_available:
-        return jsonify({'error': 'Payment system is not configured'}), 500
-    
-    payload = request.get_data()
-    sig_header = request.headers.get('Stripe-Signature')
-    
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, 'whsec_YOUR_WEBHOOK_SECRET'
-        )
-    except ValueError as e:
-        return jsonify({'error': 'Invalid payload'}), 400
-    except stripe.error.SignatureVerificationError as e:
-        return jsonify({'error': 'Invalid signature'}), 400
-    
-    # Handle the event
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        user_id = session.metadata.get('user_id')
-        plan_type = session.metadata.get('plan_type')
-        
-        if user_id and plan_type:
-            if plan_type == 'credits_5':
-                update_user_credits(user_id, credits_to_add=5)
-            elif plan_type == 'credits_15':
-                update_user_credits(user_id, credits_to_add=15)
-            elif plan_type == 'unlimited':
-                update_user_credits(user_id, subscription_status='active', unlimited=True)
-            
-            print(f"Payment completed for user {user_id}, plan: {plan_type}")
-    
-    return jsonify({'status': 'success'})
 
 @app.route('/api/clients/<client_id>/report', methods=['POST'])
 def generate_report(client_id):
