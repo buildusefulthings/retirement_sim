@@ -781,7 +781,7 @@ function App() {
       <div className="patreon-actions">
         <button 
           onClick={() => {
-            window.open('https://www.patreon.com/your-campaign', '_blank');
+            window.open('https://www.patreon.com/builduseful', '_blank');
           }}
           className="patreon-btn primary"
           disabled={patreonLoading}

@@ -387,7 +387,7 @@ def get_payment_info():
     """Get payment information for frontend"""
     return jsonify({
         'payment_system': 'patreon',
-        'patreon_url': 'https://www.patreon.com/your-campaign',  # Replace with your Patreon URL
+        'patreon_url': 'https://www.patreon.com/builduseful',  # Updated to user's campaign
         'tiers': [
             {
                 'name': 'Basic Supporter',
