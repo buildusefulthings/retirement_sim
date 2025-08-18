@@ -336,15 +336,23 @@ def patreon_callback():
         is_member = False
         tier_name = None
         
+        # For now, accept any Patreon member (you can restrict this later with campaign ID)
         if 'included' in identity_data:
             for item in identity_data['included']:
-                if item['type'] == 'member' and item['relationships']['campaign']['data']['id'] == YOUR_CAMPAIGN_ID:
-                    is_member = True
-                    # Get tier name if available
+                if item['type'] == 'member':
+                    # Check if they have any active memberships
                     if 'relationships' in item and 'currently_entitled_tiers' in item['relationships']:
                         tier_data = item['relationships']['currently_entitled_tiers']['data']
                         if tier_data:
+                            is_member = True
                             tier_name = tier_data[0]['id']  # You might want to map this to tier names
+                            break
+                    
+                    # If no specific tiers, but they're a member, still grant access
+                    if not is_member and item.get('attributes', {}).get('patron_status') == 'active_patron':
+                        is_member = True
+                        tier_name = 'Basic Supporter'
+                        break
         
         # Update user's Patreon status
         update_user_credits(user_id, patreon_member=is_member, patreon_tier=tier_name)
