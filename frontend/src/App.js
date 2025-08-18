@@ -557,6 +557,43 @@ function App() {
     }
   };
 
+  // Handle Patreon join (new function)
+  const handlePatreonJoin = async (tier) => {
+    if (!user) {
+      setAuthError('Please log in to join the Patreon campaign.');
+      return;
+    }
+
+    setPatreonLoading(true);
+    setAuthError('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/patreon/join-campaign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user.uid, tier })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to join Patreon campaign.');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        // Redirect to Patreon OAuth for joining the campaign
+        window.location.href = data.auth_url;
+      } else {
+        alert('❌ Failed to join Patreon campaign. Please try again.');
+      }
+    } catch (err) {
+      console.error('Patreon join error:', err);
+      setAuthError('Failed to join Patreon campaign: ' + err.message);
+    } finally {
+      setPatreonLoading(false);
+    }
+  };
+
   // Render results as a table
   const renderResultsTable = () => {
     if (!results) return null;
@@ -763,6 +800,13 @@ function App() {
               <li>Basic features</li>
               <li>Community access</li>
             </ul>
+            <button 
+              onClick={() => handlePatreonJoin('basic')}
+              className="patreon-btn primary"
+              disabled={patreonLoading}
+            >
+              {patreonLoading ? 'Loading...' : 'Join Basic Tier'}
+            </button>
           </div>
           
           <div className="tier-card featured">
@@ -774,21 +818,18 @@ function App() {
               <li>Priority support</li>
               <li>Early access to new features</li>
             </ul>
+            <button 
+              onClick={() => handlePatreonJoin('premium')}
+              className="patreon-btn primary"
+              disabled={patreonLoading}
+            >
+              {patreonLoading ? 'Loading...' : 'Join Premium Tier'}
+            </button>
           </div>
         </div>
       </div>
       
       <div className="patreon-actions">
-        <button 
-          onClick={() => {
-            window.open('https://www.patreon.com/builduseful', '_blank');
-          }}
-          className="patreon-btn primary"
-          disabled={patreonLoading}
-        >
-          {patreonLoading ? 'Loading...' : 'Join on Patreon'}
-        </button>
-        
         <button 
           onClick={handlePatreonAuth}
           className="patreon-btn secondary"
@@ -800,8 +841,8 @@ function App() {
       
       <div className="patreon-note">
         <p><small>
-          💡 <strong>How it works:</strong> Join our Patreon, then click "I'm Already a Patron" 
-          to verify your membership and unlock unlimited access to GlidePath.
+          💡 <strong>How it works:</strong> Click any tier button above to join our Patreon campaign. 
+          After completing your membership, click "I'm Already a Patron" to verify and unlock unlimited access.
         </small></p>
       </div>
     </div>

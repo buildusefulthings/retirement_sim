@@ -579,5 +579,29 @@ def generate_report(client_id):
         traceback.print_exc()
         return jsonify({'error': f'Failed to generate consolidated report: {str(e)}'}), 500
 
+@app.route('/api/patreon/join-campaign', methods=['POST'])
+def join_patreon_campaign():
+    """Redirect user to join Patreon campaign"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        tier = data.get('tier', 'basic')
+        
+        if not user_id:
+            return jsonify({'error': 'User ID required'}), 400
+        
+        # Get Patreon OAuth URL for joining the campaign
+        auth_url = f"https://www.patreon.com/oauth2/authorize?response_type=code&client_id={os.getenv('PATREON_CLIENT_ID')}&redirect_uri={os.getenv('PATREON_REDIRECT_URI')}&scope=identity%20identity.memberships&state={user_id}"
+        
+        return jsonify({
+            'success': True,
+            'auth_url': auth_url,
+            'message': f'Redirecting to Patreon to join {tier} tier...'
+        })
+        
+    except Exception as e:
+        print(f"Error in join_patreon_campaign: {e}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
