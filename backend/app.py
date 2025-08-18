@@ -325,9 +325,11 @@ def patreon_callback():
         identity_response = requests.get('https://www.patreon.com/api/oauth2/v2/identity?include=memberships', headers=headers)
         
         if identity_response.status_code != 200:
+            print(f"Patreon identity API failed: {identity_response.status_code} - {identity_response.text}")
             return jsonify({'error': 'Failed to get user identity'}), 400
         
         identity_data = identity_response.json()
+        print(f"Patreon identity response: {identity_data}")
         
         # Check if user is a patron of your campaign
         # You'll need to replace YOUR_CAMPAIGN_ID with your actual Patreon campaign ID
@@ -338,21 +340,47 @@ def patreon_callback():
         
         # For now, accept any Patreon member (you can restrict this later with campaign ID)
         if 'included' in identity_data:
+            print(f"Found {len(identity_data['included'])} included items")
             for item in identity_data['included']:
+                print(f"Processing item: {item['type']} - {item}")
                 if item['type'] == 'member':
                     # Check if they have any active memberships
                     if 'relationships' in item and 'currently_entitled_tiers' in item['relationships']:
                         tier_data = item['relationships']['currently_entitled_tiers']['data']
+                        print(f"Found tier data: {tier_data}")
                         if tier_data:
                             is_member = True
                             tier_name = tier_data[0]['id']  # You might want to map this to tier names
+                            print(f"User is member with tier: {tier_name}")
                             break
                     
                     # If no specific tiers, but they're a member, still grant access
                     if not is_member and item.get('attributes', {}).get('patron_status') == 'active_patron':
                         is_member = True
                         tier_name = 'Basic Supporter'
+                        print(f"User is active patron: {tier_name}")
                         break
+                    
+                    # Additional check: if they have any membership at all
+                    if not is_member and item.get('attributes', {}).get('patron_status'):
+                        is_member = True
+                        tier_name = 'Basic Supporter'
+                        print(f"User has patron status: {item.get('attributes', {}).get('patron_status')}")
+                        break
+        else:
+            print("No 'included' data found in Patreon response")
+        
+        # If still not a member, check if they have any active campaigns
+        if not is_member and 'data' in identity_data:
+            user_data = identity_data['data']
+            if 'relationships' in user_data and 'campaigns' in user_data['relationships']:
+                campaigns = user_data['relationships']['campaigns']['data']
+                if campaigns:
+                    is_member = True
+                    tier_name = 'Basic Supporter'
+                    print(f"User has campaigns: {campaigns}")
+        
+        print(f"Final membership status: {is_member}, tier: {tier_name}")
         
         # Update user's Patreon status
         update_user_credits(user_id, patreon_member=is_member, patreon_tier=tier_name)
