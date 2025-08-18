@@ -14,7 +14,9 @@ from datetime import datetime
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["https://retirement-sim-frontend.onrender.com", "http://localhost:3000"], 
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"])
 
 # Initialize Firebase (temporarily disabled for testing)
 # try:
@@ -289,9 +291,17 @@ def get_patreon_auth_url():
     auth_url = f"https://www.patreon.com/oauth2/authorize?response_type=code&client_id={PATREON_CLIENT_ID}&redirect_uri={PATREON_REDIRECT_URI}&scope=identity%20identity.memberships"
     return jsonify({'auth_url': auth_url})
 
-@app.route('/api/patreon/callback', methods=['POST'])
+@app.route('/api/patreon/callback', methods=['POST', 'OPTIONS'])
 def patreon_callback():
     """Handle Patreon OAuth callback and check membership status"""
+    # Handle preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', 'https://retirement-sim-frontend.onrender.com')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST')
+        return response
+    
     try:
         data = request.json
         user_id = data.get('user_id')
