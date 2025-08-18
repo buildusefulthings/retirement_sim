@@ -92,14 +92,14 @@
         const code = urlParams.get('code');
         const state = urlParams.get('state');
         
-        if (!code) {
-            showError('No authentication code received from Patreon.');
-            return;
-        }
-
         // Send the auth code to the backend
         async function verifyPatreonMembership() {
             try {
+                if (!code) {
+                    showError('No authentication code received from Patreon.');
+                    return;
+                }
+
                 // Get the user ID from localStorage (set during the auth flow)
                 const user = JSON.parse(localStorage.getItem('user'));
                 if (!user || !user.uid) {
