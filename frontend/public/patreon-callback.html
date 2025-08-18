@@ -103,12 +103,13 @@
                     }
 
                     // Get the user ID from localStorage (try multiple locations)
-                    var userStr = localStorage.getItem('glidepath_user') || 
-                                 localStorage.getItem('user');
+                    var userStr = localStorage.getItem('user') || 
+                                 localStorage.getItem('glidepath_user');
                     
                     console.log('Looking for user data in localStorage...');
-                    console.log('glidepath_user:', localStorage.getItem('glidepath_user'));
-                    console.log('user:', localStorage.getItem('user'));
+                    console.log('user key:', localStorage.getItem('user'));
+                    console.log('glidepath_user key:', localStorage.getItem('glidepath_user'));
+                    console.log('All localStorage keys:', Object.keys(localStorage));
                     
                     if (!userStr) {
                         showError('User not found. Please log in again and try the Patreon flow again.');
