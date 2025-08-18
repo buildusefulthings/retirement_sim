@@ -822,6 +822,20 @@ function App() {
           
           <button 
             onClick={() => {
+              // Store user data first
+              if (user) {
+                const userData = {
+                  uid: user.uid,
+                  email: user.email,
+                  credits: userCredits,
+                  timestamp: Date.now()
+                };
+                localStorage.setItem('glidepath_user', JSON.stringify(userData));
+                localStorage.setItem('user', JSON.stringify(userData));
+                console.log('Stored user data for Patreon callback:', userData);
+              }
+              
+              // Then redirect to Patreon
               window.open('https://www.patreon.com/14605506/join', '_blank');
             }}
             className="patreon-btn primary"
