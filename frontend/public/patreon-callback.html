@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patreon Authentication - GlidePath</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .callback-container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        .loading {
+            color: #666;
+            margin: 20px 0;
+        }
+        .success {
+            color: #4CAF50;
+            margin: 20px 0;
+        }
+        .error {
+            color: #f44336;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #ff6b35;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #e55a2b;
+        }
+    </style>
+</head>
+<body>
+    <div class="callback-container">
+        <h1>🎉 Patreon Authentication</h1>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Verifying your Patreon membership...</p>
+        </div>
+        <div id="success" class="success" style="display: none;">
+            <h2>✅ Success!</h2>
+            <p>Your Patreon membership has been verified!</p>
+            <p>You now have unlimited access to GlidePath.</p>
+            <a href="/" class="btn">Return to GlidePath</a>
+        </div>
+        <div id="error" class="error" style="display: none;">
+            <h2>❌ Authentication Failed</h2>
+            <p id="error-message">Something went wrong during authentication.</p>
+            <a href="/" class="btn">Return to GlidePath</a>
+        </div>
+    </div>
+
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        
+        if (!code) {
+            showError('No authentication code received from Patreon.');
+            return;
+        }
+
+        // Send the auth code to the backend
+        async function verifyPatreonMembership() {
+            try {
+                // Get the user ID from localStorage (set during the auth flow)
+                const user = JSON.parse(localStorage.getItem('user'));
+                if (!user || !user.uid) {
+                    throw new Error('User not found. Please log in again.');
+                }
+
+                const response = await fetch('https://retirement-sim-h6vl.onrender.com/api/patreon/callback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: user.uid,
+                        code: code
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to verify membership');
+                }
+
+                const data = await response.json();
+                
+                if (data.success && data.is_member) {
+                    showSuccess();
+                    // Update user credits in localStorage
+                    if (user.credits) {
+                        user.credits = 'unlimited';
+                        user.patreon_member = true;
+                        localStorage.setItem('user', JSON.stringify(user));
+                    }
+                } else {
+                    showError('Patreon membership not found. Please make sure you have joined our campaign.');
+                }
+
+            } catch (error) {
+                console.error('Verification error:', error);
+                showError(error.message);
+            }
+        }
+
+        function showSuccess() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('success').style.display = 'block';
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+
+        // Start verification process
+        verifyPatreonMembership();
+    </script>
+</body>
+</html>
