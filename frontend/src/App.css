@@ -2234,3 +2234,62 @@ body {
     width: 100%;
   }
 }
+
+.patreon-join-section {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.patreon-join-section h4 {
+  color: #333;
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.patreon-join-section p {
+  color: #666;
+  margin: 0 0 24px 0;
+  font-size: 16px;
+}
+
+.tier-summary {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+
+.tier-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  min-width: 120px;
+}
+
+.tier-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.tier-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff6b35;
+}
+
+.patreon-join-section .patreon-btn {
+  margin-top: 16px;
+  padding: 16px 32px;
+  font-size: 18px;
+  font-weight: 600;
+}

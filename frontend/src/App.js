@@ -798,45 +798,30 @@ function App() {
           </ul>
         </div>
         
-        <div className="patreon-tiers">
-          <div className="tier-card">
-            <h4>Basic Supporter</h4>
-            <p className="price">$5/month</p>
-            <ul>
-              <li>Unlimited simulations</li>
-              <li>Basic features</li>
-              <li>Community access</li>
-            </ul>
-            <button 
-              onClick={() => {
-                window.open('https://www.patreon.com/14605506/join', '_blank');
-              }}
-              className="patreon-btn primary"
-              disabled={patreonLoading}
-            >
-              {patreonLoading ? 'Loading...' : 'Join Basic Tier'}
-            </button>
+        <div className="patreon-join-section">
+          <h4>Choose Your Support Level</h4>
+          <p>Join our Patreon community and get unlimited access to GlidePath!</p>
+          
+          <div className="tier-summary">
+            <div className="tier-option">
+              <span className="tier-name">Early Adopters</span>
+              <span className="tier-price">$5/month</span>
+            </div>
+            <div className="tier-option">
+              <span className="tier-name">Premium Tier</span>
+              <span className="tier-price">$10/month</span>
+            </div>
           </div>
           
-          <div className="tier-card featured">
-            <h4>Premium Supporter</h4>
-            <p className="price">$10/month</p>
-            <ul>
-              <li>Everything in Basic</li>
-              <li>Advanced features</li>
-              <li>Priority support</li>
-              <li>Early access to new features</li>
-            </ul>
-            <button 
-              onClick={() => {
-                window.open('https://www.patreon.com/14605506/join', '_blank');
-              }}
-              className="patreon-btn primary"
-              disabled={patreonLoading}
-            >
-              {patreonLoading ? 'Loading...' : 'Join Premium Tier'}
-            </button>
-          </div>
+          <button 
+            onClick={() => {
+              window.open('https://www.patreon.com/14605506/join', '_blank');
+            }}
+            className="patreon-btn primary"
+            disabled={patreonLoading}
+          >
+            {patreonLoading ? 'Loading...' : 'Join Patreon'}
+          </button>
         </div>
       </div>
       
