@@ -822,20 +822,39 @@ function App() {
           
           <button 
             onClick={() => {
+              console.log('Join Patreon button clicked');
+              console.log('Current user:', user);
+              console.log('Current userCredits:', userCredits);
+              
               // Store user data first
               if (user) {
                 const userData = {
                   uid: user.uid,
                   email: user.email,
-                  credits: userCredits,
+                  credits: userCredits?.credits || 0,
+                  subscription_status: userCredits?.subscription_status || 'none',
+                  unlimited: userCredits?.unlimited || false,
                   timestamp: Date.now()
                 };
-                localStorage.setItem('glidepath_user', JSON.stringify(userData));
-                localStorage.setItem('user', JSON.stringify(userData));
-                console.log('Stored user data for Patreon callback:', userData);
+                
+                try {
+                  localStorage.setItem('glidepath_user', JSON.stringify(userData));
+                  localStorage.setItem('user', JSON.stringify(userData));
+                  console.log('Successfully stored user data for Patreon callback:', userData);
+                  
+                  // Verify storage worked
+                  const storedData = localStorage.getItem('glidepath_user');
+                  console.log('Verified stored data:', storedData);
+                  
+                } catch (storageError) {
+                  console.error('Failed to store user data:', storageError);
+                }
+              } else {
+                console.error('No user found when trying to store data');
               }
               
               // Then redirect to Patreon
+              console.log('Redirecting to Patreon...');
               window.open('https://www.patreon.com/14605506/join', '_blank');
             }}
             className="patreon-btn primary"
