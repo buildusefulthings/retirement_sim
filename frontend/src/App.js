@@ -833,6 +833,18 @@ function App() {
               
               // Store user data first
               if (user) {
+                console.log('User object details:', {
+                  uid: user.uid,
+                  email: user.email,
+                  displayName: user.displayName,
+                  providerId: user.providerId
+                });
+                
+                // Clear any old user data first to prevent mismatches
+                console.log('Clearing old user data...');
+                localStorage.removeItem('glidepath_user');
+                localStorage.removeItem('user');
+                
                 const userData = {
                   uid: user.uid,
                   email: user.email,
