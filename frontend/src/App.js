@@ -822,9 +822,14 @@ function App() {
           
           <button 
             onClick={() => {
+              console.log('=== PATREON JOIN DEBUG START ===');
               console.log('Join Patreon button clicked');
               console.log('Current user:', user);
               console.log('Current userCredits:', userCredits);
+              console.log('localStorage before storing:', {
+                glidepath_user: localStorage.getItem('glidepath_user'),
+                user: localStorage.getItem('user')
+              });
               
               // Store user data first
               if (user) {
@@ -844,7 +849,17 @@ function App() {
                   
                   // Verify storage worked
                   const storedData = localStorage.getItem('glidepath_user');
-                  console.log('Verified stored data:', storedData);
+                  const storedUser = localStorage.getItem('user');
+                  console.log('Verified stored data - glidepath_user:', storedData);
+                  console.log('Verified stored data - user:', storedUser);
+                  
+                  // Test immediate retrieval
+                  try {
+                    const parsedData = JSON.parse(storedData);
+                    console.log('Parsed stored data:', parsedData);
+                  } catch (parseError) {
+                    console.error('Failed to parse stored data:', parseError);
+                  }
                   
                 } catch (storageError) {
                   console.error('Failed to store user data:', storageError);
@@ -855,12 +870,27 @@ function App() {
               
               // Then redirect to Patreon
               console.log('Redirecting to Patreon...');
+              console.log('=== PATREON JOIN DEBUG END ===');
               window.open('https://www.patreon.com/14605506/join', '_blank');
             }}
             className="patreon-btn primary"
             disabled={patreonLoading}
           >
             {patreonLoading ? 'Loading...' : 'Join Patreon'}
+          </button>
+          
+          <button 
+            onClick={() => {
+              console.log('=== LOCALSTORAGE TEST ===');
+              console.log('glidepath_user:', localStorage.getItem('glidepath_user'));
+              console.log('user:', localStorage.getItem('user'));
+              console.log('All localStorage keys:', Object.keys(localStorage));
+              console.log('=== END TEST ===');
+            }}
+            className="patreon-btn secondary"
+            style={{marginTop: '10px'}}
+          >
+            Test localStorage
           </button>
         </div>
       </div>
