@@ -568,6 +568,13 @@ function App() {
     setAuthError('');
 
     try {
+      // Store user info in localStorage for the callback page
+      localStorage.setItem('user', JSON.stringify({
+        uid: user.uid,
+        email: user.email,
+        credits: userCredits
+      }));
+
       const response = await fetch(`${API_BASE_URL}/api/patreon/join-campaign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
