@@ -808,7 +808,9 @@ function App() {
               <li>Community access</li>
             </ul>
             <button 
-              onClick={() => handlePatreonJoin('basic')}
+              onClick={() => {
+                window.open('https://www.patreon.com/14605506/join', '_blank');
+              }}
               className="patreon-btn primary"
               disabled={patreonLoading}
             >
@@ -826,7 +828,9 @@ function App() {
               <li>Early access to new features</li>
             </ul>
             <button 
-              onClick={() => handlePatreonJoin('premium')}
+              onClick={() => {
+                window.open('https://www.patreon.com/14605506/join', '_blank');
+              }}
               className="patreon-btn primary"
               disabled={patreonLoading}
             >
@@ -849,7 +853,7 @@ function App() {
       <div className="patreon-note">
         <p><small>
           💡 <strong>How it works:</strong> Click any tier button above to join our Patreon campaign. 
-          After completing your membership, click "I'm Already a Patron" to verify and unlock unlimited access.
+          After completing your membership, return here and click "I'm Already a Patron" to verify and unlock unlimited access.
         </small></p>
       </div>
     </div>
