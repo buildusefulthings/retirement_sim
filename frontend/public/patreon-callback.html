@@ -103,16 +103,25 @@
                         return;
                     }
 
-                    // Get the user ID from localStorage (set during the auth flow)
-                    var userStr = localStorage.getItem('user');
+                    // Get the user ID from localStorage (try multiple locations)
+                    var userStr = localStorage.getItem('glidepath_user') || 
+                                 localStorage.getItem('user') || 
+                                 localStorage.getItem('firebase:authUser:AIzaSyBvOKSEI8jf8jf8jf8jf8jf8jf8jf8jf8jf8:web');
+                    
+                    console.log('Looking for user data in localStorage...');
+                    console.log('glidepath_user:', localStorage.getItem('glidepath_user'));
+                    console.log('user:', localStorage.getItem('user'));
+                    
                     if (!userStr) {
-                        showError('User not found. Please log in again.');
+                        showError('User not found. Please log in again and try the Patreon flow again.');
                         return;
                     }
                     
                     var user = JSON.parse(userStr);
+                    console.log('Parsed user data:', user);
+                    
                     if (!user || !user.uid) {
-                        showError('User not found. Please log in again.');
+                        showError('Invalid user data. Please log in again and try the Patreon flow again.');
                         return;
                     }
 
@@ -126,6 +135,7 @@
                             if (xhr.status === 200) {
                                 try {
                                     var data = JSON.parse(xhr.responseText);
+                                    console.log('Backend response:', data);
                                     
                                     if (data.success && data.is_member) {
                                         showSuccess();
@@ -133,28 +143,35 @@
                                         if (user.credits) {
                                             user.credits = 'unlimited';
                                             user.patreon_member = true;
+                                            localStorage.setItem('glidepath_user', JSON.stringify(user));
                                             localStorage.setItem('user', JSON.stringify(user));
                                         }
                                     } else {
                                         showError('Patreon membership not found. Please make sure you have joined our campaign.');
                                     }
                                 } catch (parseError) {
+                                    console.error('Parse error:', parseError);
                                     showError('Failed to parse server response.');
                                 }
                             } else {
+                                console.error('Backend error:', xhr.status, xhr.responseText);
                                 showError('Failed to verify membership. Status: ' + xhr.status);
                             }
                         }
                     };
                     
                     xhr.onerror = function() {
+                        console.error('Network error:', xhr);
                         showError('Network error occurred while verifying membership.');
                     };
                     
-                    xhr.send(JSON.stringify({
+                    var requestData = {
                         user_id: user.uid,
                         code: code
-                    }));
+                    };
+                    console.log('Sending request to backend:', requestData);
+                    
+                    xhr.send(JSON.stringify(requestData));
 
                 } catch (error) {
                     console.error('Verification error:', error);

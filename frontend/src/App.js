@@ -569,11 +569,18 @@ function App() {
 
     try {
       // Store user info in localStorage for the callback page
-      localStorage.setItem('user', JSON.stringify({
+      const userData = {
         uid: user.uid,
         email: user.email,
-        credits: userCredits
-      }));
+        credits: userCredits,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('glidepath_user', JSON.stringify(userData));
+      
+      // Also store in a more accessible location
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      console.log('Stored user data for Patreon callback:', userData);
 
       const response = await fetch(`${API_BASE_URL}/api/patreon/join-campaign`, {
         method: 'POST',
