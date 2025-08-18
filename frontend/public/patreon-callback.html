@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://retirement-sim-h6vl.onrender.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
     <title>Patreon Authentication - GlidePath</title>
     <style>
         body {
@@ -105,8 +104,7 @@
 
                     // Get the user ID from localStorage (try multiple locations)
                     var userStr = localStorage.getItem('glidepath_user') || 
-                                 localStorage.getItem('user') || 
-                                 localStorage.getItem('firebase:authUser:AIzaSyBvOKSEI8jf8jf8jf8jf8jf8jf8jf8jf8jf8:web');
+                                 localStorage.getItem('user');
                     
                     console.log('Looking for user data in localStorage...');
                     console.log('glidepath_user:', localStorage.getItem('glidepath_user'));
@@ -117,7 +115,14 @@
                         return;
                     }
                     
-                    var user = JSON.parse(userStr);
+                    var user;
+                    try {
+                        user = JSON.parse(userStr);
+                    } catch (parseError) {
+                        showError('Invalid user data format. Please log in again.');
+                        return;
+                    }
+                    
                     console.log('Parsed user data:', user);
                     
                     if (!user || !user.uid) {
