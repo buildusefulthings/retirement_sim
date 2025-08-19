@@ -857,13 +857,25 @@ function App() {
                 try {
                   localStorage.setItem('glidepath_user', JSON.stringify(userData));
                   localStorage.setItem('user', JSON.stringify(userData));
+                  
+                  // Also store in sessionStorage as backup
+                  sessionStorage.setItem('glidepath_user', JSON.stringify(userData));
+                  sessionStorage.setItem('user', JSON.stringify(userData));
+                  
+                  // Store with a timestamp key for extra persistence
+                  const timestampKey = `user_${Date.now()}`;
+                  localStorage.setItem(timestampKey, JSON.stringify(userData));
+                  
                   console.log('Successfully stored user data for Patreon callback:', userData);
+                  console.log('Data stored in localStorage, sessionStorage, and timestamp key:', timestampKey);
                   
                   // Verify storage worked
                   const storedData = localStorage.getItem('glidepath_user');
                   const storedUser = localStorage.getItem('user');
-                  console.log('Verified stored data - glidepath_user:', storedData);
-                  console.log('Verified stored data - user:', storedUser);
+                  const sessionData = sessionStorage.getItem('glidepath_user');
+                  console.log('Verified stored data - localStorage glidepath_user:', storedData);
+                  console.log('Verified stored data - localStorage user:', storedUser);
+                  console.log('Verified stored data - sessionStorage glidepath_user:', sessionData);
                   
                   // Test immediate retrieval
                   try {
@@ -880,6 +892,7 @@ function App() {
                     console.log('glidepath_user:', localStorage.getItem('glidepath_user'));
                     console.log('user:', localStorage.getItem('user'));
                     console.log('All keys:', Object.keys(localStorage));
+                    console.log('sessionStorage keys:', Object.keys(sessionStorage));
                     
                     // Then redirect to Patreon
                     console.log('Redirecting to Patreon...');

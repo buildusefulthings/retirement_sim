@@ -104,12 +104,31 @@
 
                     // Get the user ID from localStorage (try multiple locations)
                     var userStr = localStorage.getItem('user') || 
-                                 localStorage.getItem('glidepath_user');
+                                 localStorage.getItem('glidepath_user') ||
+                                 sessionStorage.getItem('user') ||
+                                 sessionStorage.getItem('glidepath_user');
+                    
+                    // If still not found, try timestamp keys
+                    if (!userStr) {
+                        var allKeys = Object.keys(localStorage);
+                        var userKeys = allKeys.filter(key => key.startsWith('user_'));
+                        console.log('Looking for timestamp keys:', userKeys);
+                        
+                        if (userKeys.length > 0) {
+                            // Get the most recent timestamp key
+                            var latestKey = userKeys.sort().pop();
+                            userStr = localStorage.getItem(latestKey);
+                            console.log('Found data in timestamp key:', latestKey, userStr);
+                        }
+                    }
                     
                     console.log('Looking for user data in localStorage...');
                     console.log('user key:', localStorage.getItem('user'));
                     console.log('glidepath_user key:', localStorage.getItem('glidepath_user'));
+                    console.log('sessionStorage user:', sessionStorage.getItem('user'));
+                    console.log('sessionStorage glidepath_user:', sessionStorage.getItem('glidepath_user'));
                     console.log('All localStorage keys:', Object.keys(localStorage));
+                    console.log('All sessionStorage keys:', Object.keys(sessionStorage));
                     
                     if (!userStr) {
                         showError('User not found. Please log in again and try the Patreon flow again.');
