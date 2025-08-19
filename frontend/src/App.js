@@ -873,17 +873,30 @@ function App() {
                     console.error('Failed to parse stored data:', parseError);
                   }
                   
+                  // Add a small delay to ensure storage is complete
+                  console.log('Waiting 1 second before redirect to ensure storage is complete...');
+                  setTimeout(() => {
+                    console.log('Final localStorage check before redirect:');
+                    console.log('glidepath_user:', localStorage.getItem('glidepath_user'));
+                    console.log('user:', localStorage.getItem('user'));
+                    console.log('All keys:', Object.keys(localStorage));
+                    
+                    // Then redirect to Patreon
+                    console.log('Redirecting to Patreon...');
+                    console.log('=== PATREON JOIN DEBUG END ===');
+                    window.open('https://www.patreon.com/14605506/join', '_blank');
+                  }, 1000);
+                  
                 } catch (storageError) {
                   console.error('Failed to store user data:', storageError);
+                  // Still redirect even if storage fails
+                  window.open('https://www.patreon.com/14605506/join', '_blank');
                 }
               } else {
                 console.error('No user found when trying to store data');
+                // Still redirect even if no user
+                window.open('https://www.patreon.com/14605506/join', '_blank');
               }
-              
-              // Then redirect to Patreon
-              console.log('Redirecting to Patreon...');
-              console.log('=== PATREON JOIN DEBUG END ===');
-              window.open('https://www.patreon.com/14605506/join', '_blank');
             }}
             className="patreon-btn primary"
             disabled={patreonLoading}
