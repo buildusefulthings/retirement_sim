@@ -1116,6 +1116,49 @@ function App() {
     );
   };
 
+  // Check if user has Patreon membership from localStorage
+  const checkPatreonStatus = () => {
+    if (!user) return;
+    
+    try {
+      const storedUser = localStorage.getItem('user') || localStorage.getItem('glidepath_user');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        if (userData.patreon_member && userData.uid === user.uid) {
+          // Update user credits to reflect Patreon membership
+          setUserCredits({
+            ...userCredits,
+            patreon_member: true,
+            patreon_tier: userData.patreon_tier || 'Basic Supporter',
+            unlimited: true,
+            credits: 'unlimited'
+          });
+          console.log('Updated user credits with Patreon membership status');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking Patreon status:', error);
+    }
+  };
+
+  // Check Patreon status when user changes or component mounts
+  React.useEffect(() => {
+    if (user) {
+      checkPatreonStatus();
+      
+      // Add focus event listener to check Patreon status when returning from callback page
+      const handleFocus = () => {
+        checkPatreonStatus();
+      };
+      
+      window.addEventListener('focus', handleFocus);
+      
+      return () => {
+        window.removeEventListener('focus', handleFocus);
+      };
+    }
+  }, [user]);
+
   return (
     <div className="app">
       <header className="app-header">
