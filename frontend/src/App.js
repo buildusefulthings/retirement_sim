@@ -720,7 +720,7 @@ function App() {
         },
       },
     };
-    return (
+  return (
       <div className="mc-chart-wrapper">
         <Line data={data} options={options} />
         {belowTargetYear && (

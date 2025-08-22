@@ -354,6 +354,12 @@ def patreon_callback():
             for item in identity_data['included']:
                 print(f"Processing item: {item['type']} - {item}")
                 if item['type'] == 'member':
+                    # If they have a membership record, they are a member
+                    is_member = True
+                    tier_name = 'Basic Supporter'
+                    print(f"User has membership record - setting as member: {tier_name}")
+                    break
+                    
                     # Check if they have any active memberships
                     if 'relationships' in item and 'currently_entitled_tiers' in item['relationships']:
                         tier_data = item['relationships']['currently_entitled_tiers']['data']
@@ -383,12 +389,12 @@ def patreon_callback():
         # If still not a member, check if they have any active campaigns
         if not is_member and 'data' in identity_data:
             user_data = identity_data['data']
-            if 'relationships' in user_data and 'campaigns' in user_data['relationships']:
-                campaigns = user_data['relationships']['campaigns']['data']
-                if campaigns:
+            if 'relationships' in user_data and 'memberships' in user_data['relationships']:
+                memberships = user_data['relationships']['memberships']['data']
+                if memberships:
                     is_member = True
                     tier_name = 'Basic Supporter'
-                    print(f"User has campaigns: {campaigns}")
+                    print(f"User has memberships: {memberships}")
         
         print(f"Final membership status: {is_member}, tier: {tier_name}")
         
