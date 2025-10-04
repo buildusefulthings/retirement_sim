@@ -9,9 +9,13 @@ services:
     envVars:
       - key: FLASK_ENV
         value: production
-      - key: STRIPE_SECRET_KEY
+      - key: PATREON_CLIENT_ID
         sync: false
-      - key: WEBHOOK_SECRET
+      - key: PATREON_CLIENT_SECRET
+        sync: false
+      - key: PATREON_REDIRECT_URI
+        value: https://retirement-sim-frontend.onrender.com/patreon-callback.html
+      - key: PATREON_CAMPAIGN_ID
         sync: false
     healthCheckPath: /health
 
@@ -24,6 +28,4 @@ services:
     staticPublishPath: frontend/build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://retirement-simulator-backend.onrender.com
-      - key: REACT_APP_STRIPE_PUBLISHABLE_KEY
-        sync: false 
+        value: https://retirement-sim-h6vl.onrender.com 
