@@ -38,6 +38,31 @@ user_credits_storage = {}
 client_storage = {}
 simulation_storage = {}
 
+# Discount codes storage
+discount_codes = {
+    'FAMILY2024': {
+        'credits': 50,
+        'description': 'Family discount - 50 free credits',
+        'active': True,
+        'max_uses': 100,
+        'used_count': 0
+    },
+    'FRIENDS': {
+        'credits': 25,
+        'description': 'Friends discount - 25 free credits',
+        'active': True,
+        'max_uses': 50,
+        'used_count': 0
+    },
+    'EARLYBIRD': {
+        'credits': 100,
+        'description': 'Early bird special - 100 free credits',
+        'active': True,
+        'max_uses': 20,
+        'used_count': 0
+    }
+}
+
 def get_user_credits(user_id):
     """Get user's current credits and subscription status"""
     if user_id not in user_credits_storage:
@@ -91,6 +116,50 @@ def can_user_run_simulation(user_id):
         return True
     
     return user_data['credits'] > 0
+
+def validate_discount_code(code):
+    """Validate a discount code"""
+    code = code.upper().strip()
+    if code not in discount_codes:
+        return False, "Invalid discount code"
+    
+    discount = discount_codes[code]
+    if not discount['active']:
+        return False, "Discount code is no longer active"
+    
+    if discount['used_count'] >= discount['max_uses']:
+        return False, "Discount code has reached maximum uses"
+    
+    return True, discount
+
+def redeem_discount_code(user_id, code):
+    """Redeem a discount code for a user"""
+    is_valid, result = validate_discount_code(code)
+    
+    if not is_valid:
+        return False, result
+    
+    discount = result
+    
+    # Check if user has already used this code
+    user_data = get_user_credits(user_id)
+    used_codes = user_data.get('used_discount_codes', [])
+    if code in used_codes:
+        return False, "You have already used this discount code"
+    
+    # Add credits
+    credits_to_add = discount['credits']
+    update_user_credits(user_id, credits_to_add=credits_to_add)
+    
+    # Mark code as used by this user
+    if 'used_discount_codes' not in user_data:
+        user_credits_storage[user_id]['used_discount_codes'] = []
+    user_credits_storage[user_id]['used_discount_codes'].append(code)
+    
+    # Increment usage count
+    discount_codes[code]['used_count'] += 1
+    
+    return True, f"Successfully redeemed {credits_to_add} credits! {discount['description']}"
 
 def deduct_user_credit(user_id):
     """Deduct one credit from user"""
@@ -639,6 +708,86 @@ def join_patreon_campaign():
     except Exception as e:
         print(f"Error in join_patreon_campaign: {e}")
         return jsonify({'error': str(e)}), 500
+
+# Discount code endpoints
+@app.route('/api/discount-codes/validate', methods=['POST'])
+def validate_discount_code_endpoint():
+    """Validate a discount code"""
+    try:
+        data = request.get_json()
+        code = data.get('code')
+        
+        if not code:
+            return jsonify({'error': 'Discount code required'}), 400
+        
+        is_valid, result = validate_discount_code(code)
+        
+        if is_valid:
+            return jsonify({
+                'valid': True,
+                'discount': result
+            })
+        else:
+            return jsonify({
+                'valid': False,
+                'error': result
+            }), 400
+            
+    except Exception as e:
+        print(f"Error validating discount code: {e}")
+        return jsonify({'error': 'Failed to validate discount code'}), 500
+
+@app.route('/api/discount-codes/redeem', methods=['POST'])
+def redeem_discount_code_endpoint():
+    """Redeem a discount code"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        code = data.get('code')
+        
+        if not user_id or not code:
+            return jsonify({'error': 'User ID and discount code required'}), 400
+        
+        success, message = redeem_discount_code(user_id, code)
+        
+        if success:
+            # Return updated user credits
+            user_data = get_user_credits(user_id)
+            return jsonify({
+                'success': True,
+                'message': message,
+                'credits': user_data['credits']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': message
+            }), 400
+            
+    except Exception as e:
+        print(f"Error redeeming discount code: {e}")
+        return jsonify({'error': 'Failed to redeem discount code'}), 500
+
+@app.route('/api/discount-codes/list', methods=['GET'])
+def list_discount_codes():
+    """List available discount codes (for admin purposes)"""
+    try:
+        # Return only active codes with usage info
+        active_codes = {}
+        for code, details in discount_codes.items():
+            if details['active']:
+                active_codes[code] = {
+                    'description': details['description'],
+                    'credits': details['credits'],
+                    'remaining_uses': details['max_uses'] - details['used_count'],
+                    'total_uses': details['used_count']
+                }
+        
+        return jsonify(active_codes)
+        
+    except Exception as e:
+        print(f"Error listing discount codes: {e}")
+        return jsonify({'error': 'Failed to list discount codes'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
