@@ -345,6 +345,7 @@ def patreon_callback():
         # Check if user is a patron of your campaign
         is_member = False
         tier_name = None
+        campaign_id = PATREON_CAMPAIGN_ID or 'builduseful'
         
         # Check if user has any active memberships
         if 'included' in identity_data:
@@ -431,7 +432,7 @@ def get_payment_info():
     """Get payment information for frontend"""
     return jsonify({
         'payment_system': 'patreon',
-        'patreon_url': 'https://www.patreon.com/14605506/join',  # Updated to correct campaign
+        'patreon_url': 'https://www.patreon.com/builduseful/join',  # Updated to correct campaign
         'tiers': [
             {
                 'name': 'Early Adopters',
