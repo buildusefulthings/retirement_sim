@@ -30,7 +30,8 @@ CORS(app, origins=["https://retirement-sim-frontend.onrender.com", "http://local
 # Patreon configuration
 PATREON_CLIENT_ID = os.getenv('PATREON_CLIENT_ID')
 PATREON_CLIENT_SECRET = os.getenv('PATREON_CLIENT_SECRET')
-PATREON_REDIRECT_URI = os.getenv('PATREON_REDIRECT_URI', 'https://your-frontend-app.onrender.com/patreon-callback')
+PATREON_REDIRECT_URI = os.getenv('PATREON_REDIRECT_URI', 'https://retirement-sim-frontend.onrender.com/patreon-callback.html')
+PATREON_CAMPAIGN_ID = os.getenv('PATREON_CAMPAIGN_ID')
 
 # User credit/subscription management (simplified for Patreon)
 user_credits_storage = {}
@@ -342,31 +343,22 @@ def patreon_callback():
         print(f"Patreon identity response: {identity_data}")
         
         # Check if user is a patron of your campaign
-        # You'll need to replace YOUR_CAMPAIGN_ID with your actual Patreon campaign ID
-        YOUR_CAMPAIGN_ID = os.getenv('PATREON_CAMPAIGN_ID')
-        
         is_member = False
         tier_name = None
         
-        # For now, accept any Patreon member (you can restrict this later with campaign ID)
+        # Check if user has any active memberships
         if 'included' in identity_data:
             print(f"Found {len(identity_data['included'])} included items")
             for item in identity_data['included']:
                 print(f"Processing item: {item['type']} - {item}")
                 if item['type'] == 'member':
-                    # If they have a membership record, they are a member
-                    is_member = True
-                    tier_name = 'Basic Supporter'
-                    print(f"User has membership record - setting as member: {tier_name}")
-                    break
-                    
                     # Check if they have any active memberships
                     if 'relationships' in item and 'currently_entitled_tiers' in item['relationships']:
                         tier_data = item['relationships']['currently_entitled_tiers']['data']
                         print(f"Found tier data: {tier_data}")
                         if tier_data:
                             is_member = True
-                            tier_name = tier_data[0]['id']  # You might want to map this to tier names
+                            tier_name = 'Basic Supporter'  # Default tier name
                             print(f"User is member with tier: {tier_name}")
                             break
                     
@@ -439,17 +431,17 @@ def get_payment_info():
     """Get payment information for frontend"""
     return jsonify({
         'payment_system': 'patreon',
-        'patreon_url': 'https://www.patreon.com/builduseful',  # Updated to user's campaign
+        'patreon_url': 'https://www.patreon.com/14605506/join',  # Updated to correct campaign
         'tiers': [
             {
-                'name': 'Basic Supporter',
+                'name': 'Early Adopters',
                 'price': '$5/month',
-                'benefits': ['Unlimited simulations', 'Basic features']
+                'benefits': ['Unlimited simulations', 'Basic features', 'Priority support']
             },
             {
-                'name': 'Premium Supporter', 
+                'name': 'Premium Tier', 
                 'price': '$10/month',
-                'benefits': ['Unlimited simulations', 'Advanced features', 'Priority support']
+                'benefits': ['Unlimited simulations', 'Advanced features', 'Priority support', 'Early access']
             }
         ]
     })

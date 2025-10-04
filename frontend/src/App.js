@@ -557,7 +557,7 @@ function App() {
     }
   };
 
-  // Handle Patreon join (new function)
+  // Handle Patreon join (simplified function)
   const handlePatreonJoin = async (tier) => {
     if (!user) {
       setAuthError('Please log in to join the Patreon campaign.');
@@ -576,30 +576,12 @@ function App() {
         timestamp: Date.now()
       };
       localStorage.setItem('glidepath_user', JSON.stringify(userData));
-      
-      // Also store in a more accessible location
       localStorage.setItem('user', JSON.stringify(userData));
       
       console.log('Stored user data for Patreon callback:', userData);
 
-      const response = await fetch(`${API_BASE_URL}/api/patreon/join-campaign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.uid, tier })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to join Patreon campaign.');
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        // Redirect to Patreon OAuth for joining the campaign
-        window.location.href = data.auth_url;
-      } else {
-        alert('❌ Failed to join Patreon campaign. Please try again.');
-      }
+      // Direct redirect to Patreon campaign
+      window.open('https://www.patreon.com/14605506/join', '_blank');
     } catch (err) {
       console.error('Patreon join error:', err);
       setAuthError('Failed to join Patreon campaign: ' + err.message);
@@ -821,115 +803,13 @@ function App() {
           </div>
           
           <button 
-            onClick={() => {
-              console.log('=== PATREON JOIN DEBUG START ===');
-              console.log('Join Patreon button clicked');
-              console.log('Current user:', user);
-              console.log('Current userCredits:', userCredits);
-              console.log('localStorage before storing:', {
-                glidepath_user: localStorage.getItem('glidepath_user'),
-                user: localStorage.getItem('user')
-              });
-              
-              // Store user data first
-              if (user) {
-                console.log('User object details:', {
-                  uid: user.uid,
-                  email: user.email,
-                  displayName: user.displayName,
-                  providerId: user.providerId
-                });
-                
-                // Clear any old user data first to prevent mismatches
-                console.log('Clearing old user data...');
-                localStorage.removeItem('glidepath_user');
-                localStorage.removeItem('user');
-                
-                const userData = {
-                  uid: user.uid,
-                  email: user.email,
-                  credits: userCredits?.credits || 0,
-                  subscription_status: userCredits?.subscription_status || 'none',
-                  unlimited: userCredits?.unlimited || false,
-                  timestamp: Date.now()
-                };
-                
-                try {
-                  localStorage.setItem('glidepath_user', JSON.stringify(userData));
-                  localStorage.setItem('user', JSON.stringify(userData));
-                  
-                  // Also store in sessionStorage as backup
-                  sessionStorage.setItem('glidepath_user', JSON.stringify(userData));
-                  sessionStorage.setItem('user', JSON.stringify(userData));
-                  
-                  // Store with a timestamp key for extra persistence
-                  const timestampKey = `user_${Date.now()}`;
-                  localStorage.setItem(timestampKey, JSON.stringify(userData));
-                  
-                  console.log('Successfully stored user data for Patreon callback:', userData);
-                  console.log('Data stored in localStorage, sessionStorage, and timestamp key:', timestampKey);
-                  
-                  // Verify storage worked
-                  const storedData = localStorage.getItem('glidepath_user');
-                  const storedUser = localStorage.getItem('user');
-                  const sessionData = sessionStorage.getItem('glidepath_user');
-                  console.log('Verified stored data - localStorage glidepath_user:', storedData);
-                  console.log('Verified stored data - localStorage user:', storedUser);
-                  console.log('Verified stored data - sessionStorage glidepath_user:', sessionData);
-                  
-                  // Test immediate retrieval
-                  try {
-                    const parsedData = JSON.parse(storedData);
-                    console.log('Parsed stored data:', parsedData);
-                  } catch (parseError) {
-                    console.error('Failed to parse stored data:', parseError);
-                  }
-                  
-                  // Add a small delay to ensure storage is complete
-                  console.log('Waiting 1 second before redirect to ensure storage is complete...');
-                  setTimeout(() => {
-                    console.log('Final localStorage check before redirect:');
-                    console.log('glidepath_user:', localStorage.getItem('glidepath_user'));
-                    console.log('user:', localStorage.getItem('user'));
-                    console.log('All keys:', Object.keys(localStorage));
-                    console.log('sessionStorage keys:', Object.keys(sessionStorage));
-                    
-                    // Then redirect to Patreon
-                    console.log('Redirecting to Patreon...');
-                    console.log('=== PATREON JOIN DEBUG END ===');
-                    window.open('https://www.patreon.com/14605506/join', '_blank');
-                  }, 1000);
-                  
-                } catch (storageError) {
-                  console.error('Failed to store user data:', storageError);
-                  // Still redirect even if storage fails
-                  window.open('https://www.patreon.com/14605506/join', '_blank');
-                }
-              } else {
-                console.error('No user found when trying to store data');
-                // Still redirect even if no user
-                window.open('https://www.patreon.com/14605506/join', '_blank');
-              }
-            }}
+            onClick={() => handlePatreonJoin('basic')}
             className="patreon-btn primary"
             disabled={patreonLoading}
           >
             {patreonLoading ? 'Loading...' : 'Join Patreon'}
           </button>
           
-          <button 
-            onClick={() => {
-              console.log('=== LOCALSTORAGE TEST ===');
-              console.log('glidepath_user:', localStorage.getItem('glidepath_user'));
-              console.log('user:', localStorage.getItem('user'));
-              console.log('All localStorage keys:', Object.keys(localStorage));
-              console.log('=== END TEST ===');
-            }}
-            className="patreon-btn secondary"
-            style={{marginTop: '10px'}}
-          >
-            Test localStorage
-          </button>
         </div>
       </div>
       
