@@ -86,6 +86,12 @@ function App() {
   const [patreonAuthUrl, setPatreonAuthUrl] = useState('');
   const [patreonLoading, setPatreonLoading] = useState(false);
 
+  // Discount code state
+  const [showDiscountCode, setShowDiscountCode] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountLoading, setDiscountLoading] = useState(false);
+  const [discountMessage, setDiscountMessage] = useState('');
+
   // User credits state
   const [userCredits, setUserCredits] = useState({
     credits: 0,
@@ -590,6 +596,50 @@ function App() {
     }
   };
 
+  // Handle discount code redemption
+  const handleDiscountCode = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      setDiscountMessage('Please log in to redeem a discount code.');
+      return;
+    }
+
+    if (!discountCode.trim()) {
+      setDiscountMessage('Please enter a discount code.');
+      return;
+    }
+
+    setDiscountLoading(true);
+    setDiscountMessage('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/discount-codes/redeem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.uid,
+          code: discountCode.trim().toUpperCase()
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setDiscountMessage(`✅ ${data.message}`);
+        setDiscountCode('');
+        fetchUserCredits(user.uid); // Refresh user credits
+        setShowDiscountCode(false);
+      } else {
+        setDiscountMessage(`❌ ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Discount code error:', err);
+      setDiscountMessage('Failed to redeem discount code. Please try again.');
+    } finally {
+      setDiscountLoading(false);
+    }
+  };
+
   // Render results as a table
   const renderResultsTable = () => {
     if (!results) return null;
@@ -829,6 +879,7 @@ function App() {
           After completing your membership, return here and click "I'm Already a Patron" to verify and unlock unlimited access.
         </small></p>
       </div>
+      
     </div>
   );
 
@@ -1166,6 +1217,64 @@ function App() {
                 : `You have no credits remaining. Please purchase more credits or subscribe.`
               : `You have reached your free simulation limit (${FREE_RUN_LIMIT}). Please log in or sign up for more runs.`}
           </div>
+          
+          {/* Discount Code Section - Always visible */}
+          <div className="discount-code-section">
+            <h4>🎁 Have a Discount Code?</h4>
+            <p>Enter your discount code below to get free credits!</p>
+            
+            {!showDiscountCode ? (
+              <button 
+                onClick={() => setShowDiscountCode(true)}
+                className="discount-code-btn"
+              >
+                Enter Discount Code
+              </button>
+            ) : (
+              <form onSubmit={handleDiscountCode} className="discount-code-form">
+                <input
+                  type="text"
+                  placeholder="Enter discount code (e.g., FAMILY2024)"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value)}
+                  className="discount-code-input"
+                />
+                <div className="discount-code-actions">
+                  <button 
+                    type="submit" 
+                    disabled={discountLoading}
+                    className="discount-code-submit"
+                  >
+                    {discountLoading ? 'Redeeming...' : 'Redeem Code'}
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setShowDiscountCode(false);
+                      setDiscountCode('');
+                      setDiscountMessage('');
+                    }}
+                    className="discount-code-cancel"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {discountMessage && (
+                  <div className={`discount-message ${discountMessage.includes('✅') ? 'success' : 'error'}`}>
+                    {discountMessage}
+                  </div>
+                )}
+              </form>
+            )}
+            
+            <div className="discount-code-info">
+              <p><small>
+                <strong>Available codes:</strong> FAMILY2024 (50 credits), FRIENDS (25 credits), EARLYBIRD (100 credits)
+                {!user && <><br/>💡 <strong>Note:</strong> You need to log in to redeem discount codes and get credits.</>}
+              </small></p>
+            </div>
+          </div>
+          
           {user && (
             <button onClick={() => setShowPayment(true)} className="upgrade-btn">
               View Payment Options
