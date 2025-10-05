@@ -167,7 +167,7 @@ const LandingPage = ({ onGetStarted, onNavigateToPricing, onNavigateToSupport })
               <p>Your trusted retirement planning companion</p>
             </div>
             <div className="footer-links">
-              <a href="#features">Features</a>
+              <a href="#features" onClick={() => document.getElementById('features').scrollIntoView({ behavior: 'smooth' })}>Features</a>
               <button onClick={onNavigateToPricing} className="footer-link-btn">Pricing</button>
               <button onClick={onNavigateToSupport} className="footer-link-btn">Support</button>
             </div>

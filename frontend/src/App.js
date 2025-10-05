@@ -204,8 +204,8 @@ function App() {
     } else {
       const guestRuns = parseInt(localStorage.getItem('guestRunCount') || '0', 10);
       setRunCount(guestRuns);
-      // Only show limit reached if they've actually used all their free runs
-      setLimitReached(guestRuns >= FREE_RUN_LIMIT);
+      // Only show limit reached if they've used more than their free runs
+      setLimitReached(guestRuns > FREE_RUN_LIMIT);
       setUserCredits({ credits: 0, subscription_status: 'none', unlimited: false });
       setProfiles([]);
       setSelectedProfile('');
@@ -237,7 +237,7 @@ function App() {
       const guestRuns = parseInt(localStorage.getItem('guestRunCount') || '0', 10) + 1;
       localStorage.setItem('guestRunCount', guestRuns);
       setRunCount(guestRuns);
-      setLimitReached(guestRuns >= FREE_RUN_LIMIT);
+      setLimitReached(guestRuns > FREE_RUN_LIMIT);
     }
   };
 
@@ -1101,18 +1101,41 @@ function App() {
   // Show different pages based on currentPage state
   if (currentPage === 'landing') {
     return <LandingPage 
-      onGetStarted={() => setCurrentPage('app')} 
-      onNavigateToPricing={() => setCurrentPage('pricing')}
-      onNavigateToSupport={() => setCurrentPage('support')}
+      onGetStarted={() => {
+        setCurrentPage('app');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }} 
+      onNavigateToPricing={() => {
+        setCurrentPage('pricing');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }}
+      onNavigateToSupport={() => {
+        setCurrentPage('support');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }}
     />;
   }
   
   if (currentPage === 'pricing') {
-    return <PricingPage onGetStarted={() => setCurrentPage('app')} onBackToHome={() => setCurrentPage('landing')} />;
+    return <PricingPage 
+      onGetStarted={() => {
+        setCurrentPage('app');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }} 
+      onBackToHome={() => {
+        setCurrentPage('landing');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }} 
+    />;
   }
   
   if (currentPage === 'support') {
-    return <SupportPage onBackToHome={() => setCurrentPage('landing')} />;
+    return <SupportPage 
+      onBackToHome={() => {
+        setCurrentPage('landing');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }} 
+    />;
   }
 
   return (
@@ -1135,7 +1158,10 @@ function App() {
         </div>
         <p>Inspire and achieve your journey to "FIRE", a retirement planning simulator.</p>
         <button 
-          onClick={() => setCurrentPage('landing')} 
+          onClick={() => {
+            setCurrentPage('landing');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }} 
           className="back-to-landing-btn"
           title="Back to landing page"
         >
