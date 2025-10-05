@@ -1276,62 +1276,93 @@ function App() {
               : `You have reached your free simulation limit (${FREE_RUN_LIMIT}). Please log in or sign up for more runs.`}
           </div>
           
-          {/* Discount Code Section - Always visible */}
-          <div className="discount-code-section">
-            <h4>🎁 Have a Discount Code?</h4>
-            <p>Enter your discount code below to get free credits!</p>
-            
-            {!showDiscountCode ? (
-              <button 
-                onClick={() => setShowDiscountCode(true)}
-                className="discount-code-btn"
-              >
-                Enter Discount Code
-              </button>
-            ) : (
-              <form onSubmit={handleDiscountCode} className="discount-code-form">
-                <input
-                  type="text"
-                  placeholder="Enter discount code (e.g., FAMILY2024)"
-                  value={discountCode}
-                  onChange={(e) => setDiscountCode(e.target.value)}
-                  className="discount-code-input"
-                />
-                <div className="discount-code-actions">
-                  <button 
-                    type="submit" 
-                    disabled={discountLoading}
-                    className="discount-code-submit"
-                  >
-                    {discountLoading ? 'Redeeming...' : 'Redeem Code'}
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      setShowDiscountCode(false);
-                      setDiscountCode('');
-                      setDiscountMessage('');
-                    }}
-                    className="discount-code-cancel"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                {discountMessage && (
-                  <div className={`discount-message ${discountMessage.includes('✅') ? 'success' : 'error'}`}>
-                    {discountMessage}
+          {/* Show different options based on user status */}
+          {user ? (
+            <div className="discount-code-section">
+              <h4>🎁 Have a Discount Code?</h4>
+              <p>Enter your discount code below to get free credits!</p>
+              
+              {!showDiscountCode ? (
+                <button 
+                  onClick={() => setShowDiscountCode(true)}
+                  className="discount-code-btn"
+                >
+                  Enter Discount Code
+                </button>
+              ) : (
+                <form onSubmit={handleDiscountCode} className="discount-code-form">
+                  <input
+                    type="text"
+                    placeholder="Enter discount code (e.g., FAMILY2024)"
+                    value={discountCode}
+                    onChange={(e) => setDiscountCode(e.target.value)}
+                    className="discount-code-input"
+                  />
+                  <div className="discount-code-actions">
+                    <button 
+                      type="submit" 
+                      disabled={discountLoading}
+                      className="discount-code-submit"
+                    >
+                      {discountLoading ? 'Redeeming...' : 'Redeem Code'}
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setShowDiscountCode(false);
+                        setDiscountCode('');
+                        setDiscountMessage('');
+                      }}
+                      className="discount-code-cancel"
+                    >
+                      Cancel
+                    </button>
                   </div>
-                )}
-              </form>
-            )}
-            
-            <div className="discount-code-info">
-              <p><small>
-                <strong>Available codes:</strong> FAMILY2024 (50 credits), FRIENDS (25 credits), EARLYBIRD (100 credits)
-                {!user && <><br/>💡 <strong>Note:</strong> You need to log in to redeem discount codes and get credits.</>}
-              </small></p>
+                  {discountMessage && (
+                    <div className={`discount-message ${discountMessage.includes('✅') ? 'success' : 'error'}`}>
+                      {discountMessage}
+                    </div>
+                  )}
+                </form>
+              )}
+              
+              <div className="discount-code-info">
+                <p><small>
+                  <strong>Available codes:</strong> FAMILY2024 (50 credits), FRIENDS (25 credits), EARLYBIRD (100 credits)
+                </small></p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="guest-upgrade-section">
+              <h4>🚀 Want More Simulations?</h4>
+              <p>You've used all your free runs! Log in or sign up to get more credits and access to discount codes.</p>
+              
+              <div className="guest-actions">
+                <button 
+                  onClick={() => { setShowLogin(true); setShowSignup(false); setShowForgotPassword(false); }}
+                  className="guest-btn primary"
+                >
+                  Log In
+                </button>
+                <button 
+                  onClick={() => { setShowSignup(true); setShowLogin(false); setShowForgotPassword(false); setConfirmPassword(''); }}
+                  className="guest-btn secondary"
+                >
+                  Sign Up
+                </button>
+              </div>
+              
+              <div className="guest-benefits">
+                <h5>What you get when you sign up:</h5>
+                <ul>
+                  <li>✅ 5 free credits to start</li>
+                  <li>✅ Use discount codes for more credits</li>
+                  <li>✅ Save and compare different scenarios</li>
+                  <li>✅ Access to Patreon for unlimited simulations</li>
+                </ul>
+              </div>
+            </div>
+          )}
           
           {user && (
             <button onClick={() => setShowPayment(true)} className="upgrade-btn">
