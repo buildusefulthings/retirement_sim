@@ -343,6 +343,22 @@
   opacity: 1;
 }
 
+.footer-link-btn {
+  background: none;
+  border: none;
+  color: white;
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.footer-link-btn:hover {
+  opacity: 1;
+}
+
 .footer-bottom {
   text-align: center;
   padding-top: 2rem;

@@ -1,7 +1,7 @@
 import React from 'react';
 import './LandingPage.css';
 
-const LandingPage = ({ onGetStarted }) => {
+const LandingPage = ({ onGetStarted, onNavigateToPricing, onNavigateToSupport }) => {
   return (
     <div className="landing-page">
       {/* Hero Section */}
@@ -168,8 +168,8 @@ const LandingPage = ({ onGetStarted }) => {
             </div>
             <div className="footer-links">
               <a href="#features">Features</a>
-              <a href="#pricing">Pricing</a>
-              <a href="#support">Support</a>
+              <button onClick={onNavigateToPricing} className="footer-link-btn">Pricing</button>
+              <button onClick={onNavigateToSupport} className="footer-link-btn">Support</button>
             </div>
           </div>
           <div className="footer-bottom">

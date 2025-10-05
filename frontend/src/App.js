@@ -14,6 +14,8 @@ import {
 import { useAuth } from './AuthContext';
 import ProfileManagement from './ProfileManagement';
 import LandingPage from './LandingPage';
+import PricingPage from './PricingPage';
+import SupportPage from './SupportPage';
 
 // Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -95,6 +97,7 @@ function App() {
 
   // Landing page state
   const [showLandingPage, setShowLandingPage] = useState(true);
+  const [currentPage, setCurrentPage] = useState('landing'); // 'landing', 'pricing', 'support', 'app'
 
   // User credits state
   const [userCredits, setUserCredits] = useState({
@@ -1095,9 +1098,21 @@ function App() {
     }
   }, [user]);
 
-  // Show landing page for new users
-  if (showLandingPage) {
-    return <LandingPage onGetStarted={() => setShowLandingPage(false)} />;
+  // Show different pages based on currentPage state
+  if (currentPage === 'landing') {
+    return <LandingPage 
+      onGetStarted={() => setCurrentPage('app')} 
+      onNavigateToPricing={() => setCurrentPage('pricing')}
+      onNavigateToSupport={() => setCurrentPage('support')}
+    />;
+  }
+  
+  if (currentPage === 'pricing') {
+    return <PricingPage onGetStarted={() => setCurrentPage('app')} onBackToHome={() => setCurrentPage('landing')} />;
+  }
+  
+  if (currentPage === 'support') {
+    return <SupportPage onBackToHome={() => setCurrentPage('landing')} />;
   }
 
   return (
@@ -1120,7 +1135,7 @@ function App() {
         </div>
         <p>Inspire and achieve your journey to "FIRE", a retirement planning simulator.</p>
         <button 
-          onClick={() => setShowLandingPage(true)} 
+          onClick={() => setCurrentPage('landing')} 
           className="back-to-landing-btn"
           title="Back to landing page"
         >
