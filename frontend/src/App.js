@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import { useAuth } from './AuthContext';
 import ProfileManagement from './ProfileManagement';
+import LandingPage from './LandingPage';
 
 // Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -91,6 +92,9 @@ function App() {
   const [discountCode, setDiscountCode] = useState('');
   const [discountLoading, setDiscountLoading] = useState(false);
   const [discountMessage, setDiscountMessage] = useState('');
+
+  // Landing page state
+  const [showLandingPage, setShowLandingPage] = useState(true);
 
   // User credits state
   const [userCredits, setUserCredits] = useState({
@@ -197,6 +201,7 @@ function App() {
     } else {
       const guestRuns = parseInt(localStorage.getItem('guestRunCount') || '0', 10);
       setRunCount(guestRuns);
+      // Only show limit reached if they've actually used all their free runs
       setLimitReached(guestRuns >= FREE_RUN_LIMIT);
       setUserCredits({ credits: 0, subscription_status: 'none', unlimited: false });
       setProfiles([]);
@@ -1090,6 +1095,11 @@ function App() {
     }
   }, [user]);
 
+  // Show landing page for new users
+  if (showLandingPage) {
+    return <LandingPage onGetStarted={() => setShowLandingPage(false)} />;
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -1109,6 +1119,13 @@ function App() {
           <h1>GlidePath</h1>
         </div>
         <p>Inspire and achieve your journey to "FIRE", a retirement planning simulator.</p>
+        <button 
+          onClick={() => setShowLandingPage(true)} 
+          className="back-to-landing-btn"
+          title="Back to landing page"
+        >
+          ← Back to Home
+        </button>
       </header>
       <div className="auth-bar">
         {user ? (

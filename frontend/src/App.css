@@ -45,6 +45,24 @@ body {
   max-width: 600px;
 }
 
+.back-to-landing-btn {
+  background: #f8f9fa;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 1rem;
+}
+
+.back-to-landing-btn:hover {
+  background: #e9ecef;
+  color: #333;
+  transform: translateY(-1px);
+}
+
 .App-link {
   color: #61dafb;
 }
