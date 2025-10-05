@@ -1193,7 +1193,7 @@ function App() {
         ) : (
           <>
             <span className="guest-info">
-              {runCount}/{FREE_RUN_LIMIT} free runs remaining
+              {Math.max(0, FREE_RUN_LIMIT - runCount)}/{FREE_RUN_LIMIT} free runs remaining
             </span>
             <button onClick={() => { setShowLogin(true); setShowSignup(false); setShowForgotPassword(false); }}>Login</button>
             <button onClick={() => { setShowSignup(true); setShowLogin(false); setShowForgotPassword(false); setConfirmPassword(''); }}>Sign Up</button>
@@ -1273,7 +1273,7 @@ function App() {
                 : userCredits.subscription_status === 'active'
                 ? 'Your subscription has expired. Please renew to continue.'
                 : `You have no credits remaining. Please purchase more credits or subscribe.`
-              : `You have reached your free simulation limit (${FREE_RUN_LIMIT}). Please log in or sign up for more runs.`}
+              : `You have used all ${FREE_RUN_LIMIT} free simulations. Please log in or sign up for more runs.`}
           </div>
           
           {/* Show different options based on user status */}
@@ -1335,7 +1335,7 @@ function App() {
           ) : (
             <div className="guest-upgrade-section">
               <h4>🚀 Want More Simulations?</h4>
-              <p>You've used all your free runs! Log in or sign up to get more credits and access to discount codes.</p>
+              <p>You've used all {FREE_RUN_LIMIT} free simulations! Log in or sign up to get more credits and access to discount codes.</p>
               
               <div className="guest-actions">
                 <button 
