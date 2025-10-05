@@ -1301,7 +1301,7 @@ function App() {
                 <form onSubmit={handleDiscountCode} className="discount-code-form">
                   <input
                     type="text"
-                    placeholder="Enter discount code (e.g., FAMILY2024)"
+                    placeholder="Enter your discount code"
                     value={discountCode}
                     onChange={(e) => setDiscountCode(e.target.value)}
                     className="discount-code-input"
@@ -1336,7 +1336,7 @@ function App() {
               
               <div className="discount-code-info">
                 <p><small>
-                  <strong>Available codes:</strong> FAMILY2024 (50 credits), FRIENDS (25 credits), EARLYBIRD (100 credits)
+                  <strong>Have a discount code?</strong> Enter it above to get free credits!
                 </small></p>
               </div>
             </div>
