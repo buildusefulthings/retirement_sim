@@ -1102,6 +1102,10 @@ function App() {
   if (currentPage === 'landing') {
     return <LandingPage 
       onGetStarted={() => {
+        // Reset guest run count when starting fresh from landing page
+        localStorage.setItem('guestRunCount', '0');
+        setRunCount(0);
+        setLimitReached(false);
         setCurrentPage('app');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }} 
@@ -1119,6 +1123,10 @@ function App() {
   if (currentPage === 'pricing') {
     return <PricingPage 
       onGetStarted={() => {
+        // Reset guest run count when starting fresh from pricing page
+        localStorage.setItem('guestRunCount', '0');
+        setRunCount(0);
+        setLimitReached(false);
         setCurrentPage('app');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }} 
