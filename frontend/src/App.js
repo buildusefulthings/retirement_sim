@@ -1334,11 +1334,6 @@ function App() {
                 </form>
               )}
               
-              <div className="discount-code-info">
-                <p><small>
-                  <strong>Have a discount code?</strong> Enter it above to get free credits!
-                </small></p>
-              </div>
             </div>
           ) : (
             <div className="guest-upgrade-section">
